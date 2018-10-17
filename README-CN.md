@@ -2,6 +2,8 @@
 
 让你的小米PRO笔记本吃上黑苹果
 
+## 这个分支不再更新，请访问[daliansky的仓库](https://github.com/daliansky/XiaoMi-Pro)来获得更新。
+
 [English](README.md) | [中文](README-CN.md)
 
 ## 支持列表

@@ -2,6 +2,8 @@
 
 Hackintosh your XiaoMi Pro Notebook
 
+## This fork will not be updated, please view [daliansky's work](https://github.com/daliansky/XiaoMi-Pro) for further commits.
+
 [English](README.md) | [中文](README-CN.md)
 
 ## Features
