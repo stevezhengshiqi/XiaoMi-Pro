@@ -1,4 +1,4 @@
-language: cpp
+language: bash
 
 matrix:
   include:
@@ -6,7 +6,7 @@ matrix:
     name: "Build"
     
     script:
-      - sh -c "$(curl -fsSL https://raw.githubusercontent.com/stevezhengshiqi/XiaoMi-Pro/master/makefile.sh)"
+      - bash ./makefile.sh --VERSION=1.4.1-beta1
 
     deploy:
       provider: releases
