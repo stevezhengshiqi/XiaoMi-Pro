@@ -1,71 +1,54 @@
 # Update BIOS and Unlock Better Performance
 
-[English](README.md) | [中文](README-CN.md)
+English | [中文](README_CN.md)
 
-### Introduction
+## Introduction
 
-The BIOS packet in [Firmware v0603](https://github.com/stevezhengshiqi/XiaoMi-Pro/tree/master/BIOS/Firmware%20v0603) folder is from Xiaomi stuff, so it is reliable. It is highly recommended to update to `0603` version because the script for fan fix is based on that version.
+The BIOS packet in [XMAKB5R0P0906](XMAKB5R0P0906) and [XMAKB5R0P0A07](XMAKB5R0P0A07.exe) are from Xiaomi stuff, so they are reliable. <b>These packets are only compatible with MX150 version.</b>
 
-The ME firmware in [ME](https://github.com/stevezhengshiqi/XiaoMi-Pro/tree/master/BIOS/ME) folder is from [Fernando's Win-RAID Forum](https://www.win-raid.com/t596f39-Intel-Management-Engine-Drivers-Firmware-amp-System-Tools.html). Using the latest ME firmware helps avoiding potential malicious attack. The ME firmware version in the folder is `Intel CSME 11.8 Consumer PCH-LP Firmware v11.8.55.3510` and the version of `Intel (CS)ME System Tools` is `Intel CSME System Tools v11 r14 - (2018-08-09)`.
+~The ME firmware in [ME](ME) folder is from [Fernando's Win-RAID Forum](https://www.win-raid.com/t596f39-Intel-Management-Engine-Drivers-Firmware-amp-System-Tools.html). Using the latest ME firmware helps to avoid potential malicious attack. The ME firmware version in the folder is `Intel CSME 11.8 Consumer PCH-LP Firmware v11.8.55.3510` and the version of `Intel (CS)ME System Tools` is `Intel CSME System Tools v11 r14 - (2018-08-09)`.~
 
-Warning: Since the operations are related to BIOS, there's possibility that if some errors(such as force quit the update program) occur during the update process(so as to scripts in [#8](https://github.com/stevezhengshiqi/XiaoMi-Pro/issues/8)), the whole system may unable to boot.
+Warning: Since the operations are related to BIOS, it's possible that if some errors(such as force quit the update program) occur during the update process(so as to scripts in [#8](https://github.com/stevezhengshiqi/XiaoMi-Pro/issues/8)), the whole system may unable to boot.
 
-If unfortunately this situation happens on you, you need to find Xiaomi stuff to fix your device. If you use this program, you should agree that you are the person who take whole responsibility, instead of the author.
+If unfortunately, this situation happens on you, you need to find Xiaomi stuff to fix your device. If you use this program, you should agree that you are the person who takes the whole responsibility, instead of the author.
 
 
-### How to update BIOS
+### What's new in 0906 BIOS
 
-1. Download all the files in [Firmware v0603](https://github.com/stevezhengshiqi/XiaoMi-Pro/tree/master/BIOS/Firmware%20v0603) folder.
+- a new setting `KB Backlight Mode` appears in BIOS panel. Users can choose `Power Saving` (default, KB backlight off when keyboard idle 15s) or `Standard` (KB backlight always on in S0 mode)
+- Reduce fan noise when CPU is running in low load
 
-2. Extract all the files and copy them to the root directory of a FAT32 U disk.
 
-3. Restart your laptop and press `F12` botton to choose U disk to boot.
+### What's new in 0A07 BIOS
+
+- I have no idea about this version. The packet provider doesn't give much information.
+- It's very easy to upgrade to this version. Just download and open [XMAKB5R0P0A07](XMAKB5R0P0A07.exe).
+
+
+## How to update 0906 BIOS
+
+ As the old proverb says "Fight no battle unprepared", <b>backing up important data is always a good choice.</b> Some users face with blue screen after running the updating program.
+
+1. Download all the files in [XMAKB5R0P0906](XMAKB5R0P0906) folder.
+
+2. Run `H2OFFT-Wx64.exe` with administrator.
   - IMPORTANT: From this step, your computer should keep in charged by AC adapter until the whole update process finishes.
 
-4. In the new shell interface, type `unlockme.nsh` and press `Enter`, then the system will automatically restart.
+3. A warning may appear, ignore it and update.
 
-5. Repeat the third step, and this time type `flash.nsh`.
-
-6. Wait until the update process ends.
+4. The laptop will restart, wait until the update process ends.
 
 
-### How to update ME firmware
+## How to unlock better performance
 
-1. Download all the files in [ME](https://github.com/stevezhengshiqi/XiaoMi-Pro/tree/master/BIOS/ME) folder.
+<b>MX150 Only.</b>
+[FallenChromium](https://github.com/FallenChromium) and [Cyb](http://4pda.ru/forum/index.php?showuser=914121) created scripts for changing DVMT size from 32mb to 64mb, unlocking MSR 0xE2, and editing Embedded Controller(EC) firmware to reduce fan nosie. For more information, you can visit [#8](https://github.com/stevezhengshiqi/XiaoMi-Pro/issues/8) and [cybsuai's repository](https://github.com/cybsuai/Mi-Notebook-Pro-tweaks).
 
-2. Create a new folder within the drive C and name it "Win64" (path: C:\Win64) and copy all the files into "Win64" folder.
-
-3. Make sure, that your notebook is connected to a charger and in the loading mode.
-
-4. Run the Windows PowerShell as Admin and type the following:
-```
-cd C:\Win64
-```
-After having hit the Enter key you should now be within the related folder.
-
-5. Now type the following command:
-```
-.\FWUpdLcl64.exe -F ME.bin
-```
-(note: the first character is a dot!) and hit the Enter key.
-The rest will be done automaticly.
-
-6. Wait until the process has been successfully completed.
-
-7. Restart the notebook.
+DVMT set and CFG unlock scripts are included in latest release.
 
 
-### How to unlock better performance
+## Credits
 
-[FallenChromium](https://github.com/FallenChromium) and [Cyb](http://4pda.ru/forum/index.php?showuser=914121) created scripts for changing DVMT size from 32MB to 64MB, unlocking MSR 0xE2, and editing Embedded Controller(EC) firmware to reduce fan nosie. For more information, you can visit [#8](https://github.com/stevezhengshiqi/XiaoMi-Pro/issues/8) and [cybsuai's repository](https://github.com/cybsuai/Mi-Notebook-Pro-tweaks).
-
-
-### Credit
-
-Thanks to [Xiaomi Official](https://www.mi.com/service/bijiben/) for providing BIOS packet.
-
-Thanks to [Cyb](http://4pda.ru/forum/index.php?showuser=914121) and [FallenChromium](https://github.com/FallenChromium) for writing incredible scripts to unlock better performance.
-
-Thanks to [plutomaniac's post](https://www.win-raid.com/t596f39-Intel-Management-Engine-Drivers-Firmware-amp-System-Tools.html) for providing the ME firmware.
-
-Thanks to [Fernando_Uno](http://en.miui.com/space-uid-2239545255.html) for providing the instruction of flashing ME firmware. The original instruction is at [here](http://en.miui.com/thread-3260884-1-1.html).
+- Thanks to [Xiaomi Official](https://www.mi.com/service/bijiben/) and [一土木水先生](http://bbs.xiaomi.cn/u-detail-1242799508) for providing 0906 BIOS packet. The original source is at [here](http://bbs.xiaomi.cn/t-36660609-1).
+- Thanks to a friendly guy for providing 0A07 BIOS packet. He doesn't want to be in trouble so please don't spread the 0A07 BIOS packet.
+- Thanks to [Cyb](http://4pda.ru/forum/index.php?showuser=914121) and [FallenChromium](https://github.com/FallenChromium) for writing incredible scripts to unlock better performance.

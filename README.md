@@ -1,237 +1,211 @@
-# XiaoMi NoteBook Pro for macOS Mojave & High Sierra
+<img src="Docs/img/XiaoMi_Hackintosh_with_text_Small.png" width="934" height="48"/>
 
-Hackintosh your XiaoMi Pro Notebook
+[![release](https://img.shields.io/badge/download-release-blue.svg)](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases) [![wiki](https://img.shields.io/badge/support-wiki-green.svg)](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/wiki) [![Chat](https://img.shields.io/badge/chat-tonymacx86-red.svg)](https://www.tonymacx86.com/threads/guide-xiaomi-mi-notebook-pro-high-sierra-10-13-6.242724)
+-----
 
-## This fork will not be updated, please view [daliansky's work](https://github.com/daliansky/XiaoMi-Pro) for further commits.
+macOS Catalina & Mojave & High Sierra on XiaoMi NoteBook Pro 2017 & 2018
 
-[English](README.md) | [中文](README-CN.md)
+English | [中文](README_CN.md)
 
-## Features
+## Contents
 
-* Support 10.13.x and 10.14.
-* CPU native support. For people who want better performance (or longer battery life), please replace `/CLOVER/kexts/Other/CPUFriendDataProvider.kext` with the archive in [#53](https://github.com/daliansky/XiaoMi-Pro/issues/53).
-* The model of the sound card is `Realtek ALC298`, which is drived by `AppleALC` in layout-id 99; injection information is located in `/CLOVER/config.plist`. If headphones are not working, please download [ALCPlugFix](https://github.com/stevezhengshiqi/XiaoMi-Pro/tree/master/ALCPlugFix) folder, run `install.command`, and restart to patch the audio driver.
-    * Some i5 devices may fail to drive microphone, please follow instructions in [#13](https://github.com/stevezhengshiqi/XiaoMi-Pro/issues/13).
-* Touchpad driver is `VoodooI2C`, which supports multiple gestures without drift.
-* Other ACPI fixes use hotpatch; related files are located in `/CLOVER/ACPI/patched`.
-* USB Port Patching uses [Intel FB-Patcher](https://www.tonymacx86.com/threads/release-intel-fb-patcher-v1-4-1.254559/), related file is located in `/CLOVER/kexts/Other/USBPower.kext`.
-* Use HDMI port on the left side may cause black internal display, please try to reopen the lid.
-* Native Brightness hotkey support; related file is located in `/CLOVER/ACPI/patched/SSDT-LGPA.aml`.
-* Native Bluetooth is [not working well](https://github.com/daliansky/XiaoMi-Pro/issues/50). The model is `Intel® Dual Band Wireless-AC 8265`. There are two options you can do with it:
-    * Disable it to save power or use a BT dongle. Please read instructions here: [#24](https://github.com/daliansky/XiaoMi-Pro/issues/24).
-    * Buy and insert a supported wireless card in M.2 slot and carefully solder D+ and D- wires to the WLAN_LTE slot. After that, please replace the archive in [#7](https://github.com/stevezhengshiqi/XiaoMi-Pro/issues/7).
+- [Configuration](#configuration)
+- [Current Status in Clover](#current-status-in-clover)
+- [Current Status in OpenCore](#current-status-in-opencore)
+- [Installation](#installation)
+  - [First-time installation](#first-time-installation)
+  - [Build](#build)
+  - [Upgrade](#upgrade)
+- [Improvements](#improvements)
+- [FAQ](#faq)
+- [Changelog](#changelog)
+- [A reward](#a-reward)
+- [Credits](#credits)
+- [Support and discussion](#support-and-discussion)
 
 
-## Credits
+## Configuration
 
-- [RehabMan](https://github.com/RehabMan) Updated [AppleBacklightInjector](https://github.com/RehabMan/HP-ProBook-4x30s-DSDT-Patch/tree/master/kexts/AppleBacklightInjector.kext) and [EAPD-Codec-Commander](https://github.com/RehabMan/EAPD-Codec-Commander) and [OS-X-Clover-Laptop-Config](https://github.com/RehabMan/OS-X-Clover-Laptop-Config) and [OS-X-Voodoo-PS2-Controller](https://github.com/RehabMan/OS-X-Voodoo-PS2-Controller) for maintenance
+| Specifications | Detail                                                  |
+| ------------------- | ------------------------------------------- |
+| Computer model      | Xiaomi NoteBook Pro 15.6''(MX150/GTX)      |
+| Processor           | Intel Core i5-8250U/i7-8550U Processor     |
+| Memory              | 8GB/16GB Samsung DDR4 2400MHz              |
+| Hard Disk           | Samsung NVMe SSD Controller PM961/PM981    |
+| Integrated Graphics | Intel UHD Graphics 620                     |
+| Monitor             | BOE NV156FHM-N61 FHD 1920x1080 (15.6 inch) |
+| Sound Card          | Realtek ALC298 (layout-id:30/99)           |
+| Wireless Card       | Intel Wireless 8265                        |
+| SD Card Reader      | Realtek RTS5129/RTS5250S                   |
 
-- [vit9696](https://github.com/vit9696) Updated [AppleALC](https://github.com/acidanthera/AppleALC) and [HibernationFixup](https://github.com/acidanthera/HibernationFixup) and [Lilu](https://github.com/acidanthera/Lilu) and `USBPower` and [VirtualSMC](https://github.com/acidanthera/VirtualSMC) and [WhateverGreen](https://github.com/acidanthera/WhateverGreen) for maintenance
 
-- [PMheart](https://github.com/PMheart) Updated [CPUFriend](https://github.com/PMheart/CPUFriend) for maintenance
+## Current Status in Clover
 
-- [alexandred](https://github.com/alexandred) and [hieplpvip](https://github.com/hieplpvip) Updated [VoodooI2C](https://github.com/alexandred/VoodooI2C) for maintenance
+- <b>HDMI may not work on macOS 10.15.5+, view [acidanthera/bugtracker#938](https://github.com/acidanthera/bugtracker/issues/938)</b>
+- <b>Ethernet may not work on macOS 10.15, view [#256](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/issues/256)</b>
+- In macOS 10.15, you need to update [Wireless-USB-Adapter Driver](https://github.com/chris1111/Wireless-USB-Adapter/releases)
+  - If you are not using macOS 10.15, it's still recommended to update the driver above
+- <b>Discrete graphic card</b> is not working, since macOS doesn't support Optimus technology
+  - Have used [SSDT-DDGPU](ACPI/SSDT-DDGPU.dsl) to disable it in order to save power
+- <b>Fingerprint sensor</b> is not working
+  - Have used [SSDT-USB](ACPI/SSDT-USB.dsl) to disable it in order to save power
+- <b>Intel Bluetooth</b> may cause sleep problems and does not support some Bluetooth devices
+  - View [Work-Around-with-Bluetooth](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/wiki/Work-Around-with-Bluetooth)
+- <b>Intel Wi-Fi (Intel Wireless 8265)</b> could work by additional configurations
+  - Buy a USB Wi-Fi dongle or supported wireless card
+  - Use [itlwm](https://github.com/zxystd/itlwm) and [HeliPort](https://github.com/zxystd/HeliPort) to drive Intel Wi-Fi
+  - ~View [#330](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/issues/330), some test drivers are provided there~
+- <b>Realtek USB SD Card Reader (RTS5129)</b> is not working
+  - Have used [SSDT-USB](ACPI/SSDT-USB.dsl) to disable it in order to save power
+- Everything else works well
 
-- [FallenChromium](https://github.com/FallenChromium) and [Javmain](https://github.com/javmain) and [johnnync13](https://github.com/johnnync13) for valuable suggestions
+
+## Current Status in OpenCore
+
+- Basically the same with [Current Status in Clover](#current-status-in-clover) section
+- Limited theme
+- <b>Software in Windows may lose activation due to different hardware UUID generated by OpenCore</b>
+  - I am not sure whether it works or not. According to [OpenCore Official Configuration](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/Configuration.pdf), you can try to inject the original firmware UUID to `PlatformInfo - Generic - SystemUUID` in `/OC/config.plist`
+- Should Clean NVRAM after using Clover
+  - Press `Space` in OpenCore boot page, and then select `Clean NVRAM` entry
 
 
 ## Installation
 
-Please refer to the detailed installation tutorial (Chinese version) [macOS安装教程兼小米Pro安装过程记录](https://blog.daliansky.net/MacOS-installation-tutorial-XiaoMi-Pro-installation-process-records.html).
+### First-time installation
 
-A complete EFI archive is available [releases](https://github.com/stevezhengshiqi/XiaoMi-Pro/releases) page,Thanks to the continuous update of [stevezhengshiqi](https://github.com/stevezhengshiqi/XiaoMi-Pro).
-
-If the tracpad doesn't work during installation, please plug a wired mouse or a wireless mouse projector before the installation. After the installation completes, open `Terminal.app` and type `sudo kextcache -i /`. Wait for the process ending and restart the device. Enjoy your trackpad!
-
-
-## Change Log:
-
-- 10-14-2017
-    
-    - EFI update, touch pad is working
-
-
-- 10-17-2017
-    
-    - EFI update, fixed graphics driver
-    - Add HDMI Audio output
-    - Driver Update:
-        - `Lilu` v1.2.0
-        - `AppleALC` v1.2.1
-        - `IntelGraphicsDVMTFixup` v1.2.0
-        - `AirportBrcmFixup` v1.1.0
-    - Driver repair:
-        - `IntelGraphicsFixup` v1.2.0
-
-
-- 10-18-2017
-
-    - tested graphics driver is not as good as the first version, now the graphics driver is restored to fake 0x19160000
-    - ACPI repair
-    - Driver fixes
-    - Remove `USBInjectAll` with `SSDT-UIAL.aml` built-in USB device
-
-
-- 10-19-2017
-
-    - Graphics driver is normal
-    - The touchpad turns on normally, multi-gestures are normal after waking up
-    - normal sleep
-    - Battery information is normal
-
-
-- 10-31-2017
-
-    - Update sound card driver, fix earphone problem
-    - New driver to increase layoutid: 13
-    - Supports four nodes to support the headset to switch freely, Mic / LineIn is working properly
-
-
-- 11-2-2017
-    
-    - `Lilu` v1.2.0 update, support 10.13.2Beta
-    - `AppleALC` update, using the latest revision of Lilu co-compiler to solve 10.13.1 update can not be driven after the problem
-
-
-- 11-5-2017
-
-    - Integrate `AppleALC_ALC298_id13_id28.kext` driver to EFI
-    - Add EFL directory ALCPlugFix directory, please enter the ALCPlugFix directory after the installation is complete, double-click the `install.command` to automatically install. Command Install the headset plug-in state correction daemon
-    - Fixed Drivers64UEFI to solve the problem that can not be installed
-    - Updated `apfs.efi` to version 10.13.1
-
-
-- 11-7-2017
-    
-    - `Lilu` v1.2.1 is not stable at the moment, with the risk of inability to enter the system, so downgrade to v1.2.0
-    - `AppleALC` downgraded to V1.2.0
-       **EFI temporarily does not support macOS 10.13.2Beta version of the installation, Lilu does not exhaust will continue to update**
-
-
-- 1-25-2018
-    
-    - Support for 10.13.x installation
-    - Updated `VoodooI2C` to version 2.0.1, supports multi-gestures, touchpad boot can be used normally, no drift, no wakeup
-    - Fixed the issue of percentage refreshes
-    - Fix sound card sleep wake up soundless problem
-    - Fixed screen brightness can not be saved problem
-    - Updated `Lilu` v1.2.2
-    - Updated `AppleALC` v1.2.2 support millet pro, injection ID: 99
-    - Update `IntelGraphicsFixup` v1.2.3   
-
-
-- 4-8-2018
-  
-    - Support for 10.13.4 installation
-    - Updated `ACPIBatteryManager` v1.81.4
-    - Updated `AppleALC` v1.2.6
-    - Updated `FakeSMC` v6.26-344-g1cf53906.1787
-    - Updated `IntelGraphicsDVMTFixup` v1.2.1
-    - Updated `IntelGraphicsFixup` v1.2.7, no need kexts for faking Intel Graphics' ID
-    - Updated `Lilu` v1.2.3
-    - Updated `Shiki` v2.2.6
-    - Updated `USBInjectAll` v0.6.4
-    - Add `AppleBacklightInjector` to widen the range of brightness
-    - Add `CPUFriend` and `CPUFriendDataProvider` to enable native XCPM
-    - Add boot flags `shikigva=1`, `igfxrst=1` and `igfxfw=1` to make the Graphics card more powerful and fix strange secondary boot interface.
-    - Add `SSDT-LGPA.aml`, support native brightness hotkey
-
-
-- 4-13-2018
-
-    - Update `AppleALC` v1.2.7
-    - Update `SSDT-IMEL.aml`, `SSDT-PTSWAK.aml`, `SSDT-SATA.aml`, `SSDT-XOSI.aml` from Rehabman's Github
-    - Edit `SSDT-LPC.aml` to load native AppleLPC
-    - Update `Clover` r4438
-
-
-- 5-14-2018
-
-    - Rename some SSDTs to fit with Rehabman's sample:https://github.com/RehabMan/OS-X-Clover-Laptop-Config. Also update `SSDT-GPRW.aml`, `SSDT-DDGPU.aml`, `SSDT-RMCF.aml` and `SSDT-XHC.aml`
-    - Delete some useless renames in config and incorrect boot flag `shikigva=1`
-    - Redo the USB Injection, now it supports type-c USB3.0
-    - Delete `SSDT-ADBG.aml` since it's useless
-    - Delete `SSDT-IMEI.aml` to avoid kernel error report(Graphics id is automatically injected by `IntelGraphicsFixup`)
-    - Add `SSDT-EC.aml` and `SSDT-SMBUS.aml` to launch AppleBusPowerController and AppleSMBusPCI
-    - Edit `SSDT-PCIList.aml` to let System Information.app show correct information
-    - Update `Lilu` v1.2.4
-    - Update `CPUFriendDataProvider` to save power
-    - Update `Clover` r4458
-
-
-- 7-27-2018
-    
-    - Update `Clover` r4625
-    - Update `AppleALC` v1.3.1
-    - Update `Lilu` v1.2.6
-    - Update `CPUFriendDataProvider` by using MBP15,2's PM template to enable native HWP
-    - Update `VoodooI2C` v2.0.3
-    - Update `USBInjectAll` v0.6.6
-    - Update `CodecCommander` v2.6.3 by merging `SSDT-MiPro_ALC298.aml`
-    - Delete useless boot flags `igfxfw=1` and  `-disablegfxfirmware`
-    - Edit `SSDT-PCIList.aml` to let `System Information.app` show more PCI devices
-    - Use `WhateverGreen` to replace `IntelGraphicsFixup`, `Shiki` and `IntelGraphicsDVMTFixup`
-    - Use `VoodooPS2Controller` to replace `ApplePS2SmartTouchPad`
-    - Add minStolen Clover patch
-    - Add support for Mojave (the installation instruction is at above)
-
-
-- 8-9-2018
+- Please refer to the following installation tutorials
+  - [Xiaomi Mi Notebook Pro High Sierra 10.13.6](https://www.tonymacx86.com/threads/guide-xiaomi-mi-notebook-pro-high-sierra-10-13-6.242724)
+  - [Xiaomi Mi Notebook Pro MacOS Catalina Installation Guide || ENGLISH](https://bit.ly/34biTqw)
+- or video tutorials
+  - [Xiaomi NoteBook PRO HACKINTOSH INSTALLATION GUIDE !!!](https://www.youtube.com/watch?v=72sPmkpxCvc)
+  - [GUIA HACKINTOSH ESPAÑOL 2020 || Instalación de macOS Catalina Xiaomi Mi Notebook Pro](https://www.youtube.com/watch?v=rfG4sGwhE2g)
+- If the trackpad doesn't work during the installation, please plug a wired mouse or a wireless mouse projector before the installation. After the installation completes, open `Terminal.app` and run `sudo kextcache -i /`. Wait for the process ending and restart the device. Enjoy your trackpad!
+- Complete EFI packs are available in the [releases](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases) page.
+ - Please don't clone or download the master branch for daily use.
  
-    - Update `Clover` r4641
-    - Update `WhateverGreen` v1.2.1
-    - Update `AppleALC`
-    - Update `CPUFriendDataProvider` by using default EPP value to enhance performance
-    - Update `Lilu`
-    - Update `config.plist`, using AddProperties to replace minStolen Clover patch
-    - Change AppleIntelFramebuffer@0's connertor-type from LVDS to eDP because MiPro uses eDP pin
-    - No injection of ig-platform-id 0x12345678 by using `config_install.plist` anymore, `WhateverGreen` can help do this.
-    - Mojave installation become easier
+ <img src="Docs/img/README_donot_Clone_or_Download.jpg" width="300px" alt="donot_clone_or_download">
+ <img src="Docs/img/README_get_Release.jpg" width="300px" alt="get_release">
 
 
-- 8-13-2018
+### Build
 
-    - Reverse back `CPUFriendProvider.kext` to the one in v1.2.2 because the one in v1.2.5 will cause KP in some devices in 10.13.3~10.13.5. If you want better CPU performance or better battery life, please read [#53](https://github.com/daliansky/XiaoMi-Pro/issues/53)
-    
-    
-- 9-15-2018
+- Build the latest beta EFI by running the following command in Terminal:
+```
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/daliansky/XiaoMi-Pro-Hackintosh/master/makefile.sh)"
+```
+- Or run the following command in Terminal:
+```
+git clone --depth=1 https://github.com/daliansky/XiaoMi-Pro-Hackintosh.git
+cd XiaoMi-Pro-Hackintosh
+./makefile.sh
+```
+- To build the latest beta EFI with pre-release kexts, run the following command in Terminal:
+```
+git clone --depth=1 https://github.com/daliansky/XiaoMi-Pro-Hackintosh.git
+cd XiaoMi-Pro-Hackintosh
+./makefile.sh --PRE_RELEASE=Kext
+```
+- When build the latest beta EFI with pre-release kexts, some errors may occur in the building stage. Run the following command in Terminal to ignore errors:
+```
+./makefile.sh --PRE_RELEASE=Kext --IGNORE_ERR
+```
 
-    - Update `Clover` r4671
-    - Update  `WhateverGreen` v1.2.3
-    - Update `AppleALC` v1.3.2
-    - Update `CPUFriend` v1.1.5
-    - Update `Lilu` v1.2.7
-    - Update `USBInjectAll` v0.6.7
-    - Update `SSDT-GPRW.aml` and `SSDT-RMCF.aml` from Rehabman's sample:https://github.com/RehabMan/OS-X-Clover-Laptop-Config
-    - Update `SSDT-PCIList.aml` to add more Properties in PCI0 devices 
-    - Add `SSDT-DMAC.aml` , `SSDT-MATH.aml` , `SSDT-MEM2.aml` , and `SSDT-PMCR.aml` to enhace performance like a real Mac. Inspired by [syscl](https://github.com/syscl/XPS9350-macOS/tree/master/DSDT/patches)
-    - Add `HibernationFixup` to enable time setting in `System Preferences - Energy Saver`
-    - Use `VirtualSMC` to replace `FakeSMC`. You can get more CPU Core Information by using `iStat Menus`, and more SMC keys are added in nvram.
-    - Remove VRAM 2048MB patch in `config.plist`, the actual VRAM isn't affected by this patch
-    - Drop useless ACPI tables in `config.plist`
-    - Reverse  AppleIntelFramebuffer@0's connertor-type to default value
+
+### Upgrade
+
+- A complete replacement of `BOOT` and `CLOVER`(or `OC`) folders is required. Delete these two folders and copy them from the [release pack](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases).
+- You can also update Clover EFI by running the following command in Terminal:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/daliansky/XiaoMi-Pro-Hackintosh/master/install.sh)"
+```
 
 
-- 9-28-2018
+## Improvements
 
-    - Downgrade [`Clover` r4658.RM-4903.ca9576f3](https://github.com/RehabMan/Clover) because Rehabman's version is more reliable
-    - Update `WhateverGreen`, `AppleALC`, `Lilu`, `CPUFriend`, and `HibernationFixup` by using official release
-    - Update `AppleBacklightInjector` to support HD630
-    - Update `SSDT-PNLF.aml` to support HD630
-    - Update `VoodooI2C*` v2.1.4. (This driver is a patched version from [official release](https://github.com/alexandred/VoodooI2C/releases), the official one has scalling issue.)
-    - Update `VoodooPS2Controller` v1.9.0 to stop trackpad when using keyboard
-    - Update headers in hotpatch
-    - Add `USBPower` to replace `USBInjectAll` and `SSDT-USB.aml`
-    - Remove `SSDT-MATH.aml`
-    - Clean code in `config.plist` 
+- Use [ALCPlugFix](ALCPlugFix) to fix unworking jack after replug
+- Use [DVMT_and_0xE2_fix](BIOS/DVMT_and_0xE2_fix) to set DVMT to 64mb and unlock CFG
+- Use [xzhih](https://github.com/xzhih)'s [one-key-hidpi](https://github.com/xzhih/one-key-hidpi) to improve quality of system UI
+  - Support 1440x810 HiDPI resolution
+  - On macOS > 10.13.6, to enable higher HiDPI resolution (<1600x900), you need to use [DVMT_and_0xE2_fix](BIOS/DVMT_and_0xE2_fix) to set DVMT to 64mb first
+- Use [one-key-cpufriend](one-key-cpufriend) to modify CPU power management
+
+
+## FAQ
+
+#### My touchpad isn't working after update.
+
+You need to rebuild the kext cache after every system update. Use `Kext Utility.app` or type `sudo kextcache -i /` in `Terminal.app`. Then restart. If this still doesn't work, try to press F9.
+
+#### I can't click to drag files using the trackpad.
+
+Starts from [VoodooI2C v2.4.1](https://github.com/alexandred/VoodooI2C/releases/tag/2.4.1), the click down action is emulated to force touch, which causes the failure of click down and drag gestures. You can turn off `Force Click` in `SysPref - Trackpad` or choose `three finger drag` in `SysPref - Accessibility - Mouse & Trackpad - Trackpad Options`.
+
+#### My screen turns to black and has no response during the updating process.
+
+If you have black screen for five minutes and get no response from the device, please force restart your laptop(Long press power button) and choose `Boot macOS Install from ~` entry.
+
+#### My device is locked by `Find My Mac` and can't be booted, what should I do now?
+
+For Clover users, press `Fn+F11` when you are in Clover boot page. Then Clover will refresh `nvram.plist`, and lock message should be removed.  
+For OC users, press `Esc` to enter the boot menu during startup. Then, press `Space` key and choose `Clean NVRAM`.
+
+#### [Clover] I opened the `FileVault`, and I can't find macOS partition in Clover boot page, how can I solve it?
+
+It is not recommended to open `FileVault`. You can press Fn + F3 in the Clover boot page and choose the icon with `FileVault`. Then you can boot in the system and close `FileVault`.
+
+#### [Clover] I can't boot in Windows/Linux by using Clover, but able to boot by press F12 and select OS.
+
+Many people met this problem by using the new version of `AptioMemoryFix.efi`. A workaround is to delete `AptioMemoryFix.efi` in `/CLOVER/drivers/UEFI/` and replace it with the old version provided in [#93](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/issues/93).
+
+Also make sure `Sandbox` and `Hyper-V` functions in Windows 10 are disabled.
+
+#### [OC] How to skip the boot menu and automatically boot into the system?
+
+First, in macOS, open `SysPref - Startup Disk`. Choose the target system.  
+Then, open `/EFI/OC/config.plist`, and turn off `ShowPicker`.  
+When you want to switch OS, press `Esc` during startup to call the boot menu.
+
+### Please refer to detailed FAQ in [wiki FAQ](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/wiki/FAQ).
+
+
+## Changelog
+
+You can view [Changelog](Changelog.md) for detailed information.
 
 
 ## A reward
 
-I don't need any reward. Good suggestions and ideas are welcomed.
+All the project is made for free, but you can reward me if you want.
+
+| Wechat                                                     | Alipay                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------- |
+| ![wechatpay_160](http://7.daliansky.net/wechatpay_160.jpg) | ![alipay_160](http://7.daliansky.net/alipay_160.jpg) |
+
+
+## Credits
+
+- Thanks to [Acidanthera](https://github.com/acidanthera) for providing [AppleALC](https://github.com/acidanthera/AppleALC), [AppleSupportPkg](https://github.com/acidanthera/AppleSupportPkg), [HibernationFixup](https://github.com/acidanthera/HibernationFixup), [Lilu](https://github.com/acidanthera/Lilu), [NVMeFix](https://github.com/acidanthera/NVMeFix), [OcBinaryData](https://github.com/acidanthera/OcBinaryData), [OpenCorePkg](https://github.com/acidanthera/OpenCorePkg), [VirtualSMC](https://github.com/acidanthera/VirtualSMC), [VoodooInput](https://github.com/acidanthera/VoodooInput), [VoodooPS2](https://github.com/acidanthera/VoodooPS2), and [WhateverGreen](https://github.com/acidanthera/WhateverGreen).
+- Thanks to [apianti](https://sourceforge.net/u/apianti), [blackosx](https://sourceforge.net/u/blackosx), [blusseau](https://sourceforge.net/u/blusseau), [dmazar](https://sourceforge.net/u/dmazar), and [slice2009](https://sourceforge.net/u/slice2009) for providing [Clover](https://github.com/CloverHackyColor/CloverBootloader).
+- Thanks to [daliansky](https://github.com/daliansky) for providing [OC-little](https://github.com/daliansky/OC-little).
+- Thanks to [FallenChromium](https://github.com/FallenChromium), [jackxuechen](https://github.com/jackxuechen), [Javmain](https://github.com/javmain), [johnnync13](https://github.com/johnnync13), [Menchen](https://github.com/Menchen), [Pasi-Studio](https://github.com/Pasi-Studio), [qeeqez](https://github.com/qeeqez), and [Bat.bat](https://github.com/williambj1) for valuable suggestions.
+- Thanks to [hieplpvip](https://github.com/hieplpvip) and [syscl](https://github.com/syscl) for providing sample of DSDT patches.
+- Thanks to [RehabMan](https://github.com/RehabMan) for providing [EAPD-Codec-Commander](https://github.com/RehabMan/EAPD-Codec-Commander), [EFICheckDisabler](https://github.com/RehabMan/hack-tools/tree/master/kexts/EFICheckDisabler.kext), [OS-X-Clover-Laptop-Config](https://github.com/RehabMan/OS-X-Clover-Laptop-Config), [OS-X-Null-Ethernet](https://github.com/RehabMan/OS-X-Null-Ethernet), and [SATA-unsupported](https://github.com/RehabMan/hack-tools/tree/master/kexts/SATA-unsupported.kext).
+- Thanks to [VoodooI2C](https://github.com/VoodooI2C) for providing [VoodooI2C](https://github.com/VoodooI2C/VoodooI2C).
+- Thanks to [zxystd](https://github.com/zxystd) for providing [IntelBluetoothFirmware](https://github.com/zxystd/IntelBluetoothFirmware).
+
+### For more detail, please go to [Reference page](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/wiki/References).
 
 
 ## Support and discussion
+
+- Mi Notebooks supported by other projects:
+  - [Mi-Gaming-Laptop](https://github.com/johnnync13/XiaomiGaming) by [johnnync13](https://github.com/johnnync13)
+  - [Mi-NB-Air-125-6y30](https://github.com/johnnync13/EFI-Xiaomi-Notebook-air-12-5) by [johnnync13](https://github.com/johnnync13)
+  - [Mi-NB-Air-125-7y30](https://github.com/influenist/Mi-NB-Gaming-Laptop-MacOS) by [influenist](https://github.com/influenist)
+  - [Mi-NB-Air-133-Gen1](https://github.com/johnnync13/Xiaomi-Notebook-Air-1Gen) by [johnnync13](https://github.com/johnnync13)
+  - [Mi-NB-Air-133-2018](https://github.com/johnnync13/Xiaomi-Mi-Air) by [johnnync13](https://github.com/johnnync13)
 
 - tonymacx86.com:
   - [[Guide] Xiaomi Mi Notebook Pro High Sierra 10.13.6](https://www.tonymacx86.com/threads/guide-xiaomi-mi-notebook-pro-high-sierra-10-13-6.242724)
@@ -239,9 +213,4 @@ I don't need any reward. Good suggestions and ideas are welcomed.
 - QQ:
   - 247451054 [小米PRO黑苹果高级群](http://shang.qq.com/wpa/qunwpa?idkey=6223ea12a7f7efe58d5972d241000dd59cbd0260db2fdede52836ca220f7f20e)
   - 137188006 [小米PRO黑苹果](http://shang.qq.com/wpa/qunwpa?idkey=c17e190b9466a73cf12e8caec36e87124fce9e231a895353ee817e9921fdd74e)
-  - 331686786 [一起吃苹果](http://shang.qq.com/wpa/qunwpa?idkey=db511a29e856f37cbb871108ffa77a6e79dde47e491b8f2c8d8fe4d3c310de91)
-  - 688324116 [一起黑苹果](https://shang.qq.com/wpa/qunwpa?idkey=6bf69a6f4b983dce94ab42e439f02195dfd19a1601522c10ad41f4df97e0da82)
-  - 257995340 [一起啃苹果](http://shang.qq.com/wpa/qunwpa?idkey=8a63c51acb2bb80184d788b9f419ffcc33aa1ed2080132c82173a3d881625be8)
-
-
-
+  - 689011732 [小米笔记本Pro黑苹果](http://shang.qq.com/wpa/qunwpa?idkey=dde06295030ea1692d6655564e392d86ad874bd0608afd7d408c347d1767981b)

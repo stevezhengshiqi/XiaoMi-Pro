@@ -1,1 +1,15 @@
+# macOS
+._*
 .DS_Store
+
+# Exclude
+!.gitkeep
+
+# build_acpi
+ACPI/iasl*
+
+# download_kexts
+Kexts/download/*
+
+# makefile
+build/*
