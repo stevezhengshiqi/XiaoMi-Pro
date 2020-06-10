@@ -523,6 +523,9 @@ function Patch() {
 
 # Enjoy
 function Enjoy() {
+  for BUILDdir in "${OUTDir}" "${OUTDir_OC}"; do
+    zip -qr "${BUILDdir}.zip" "${BUILDdir}"
+  done
   echo "${red}[${reset}${blue}${bold} Done! Enjoy! ${reset}${red}]${reset}"
   echo
   open ./
