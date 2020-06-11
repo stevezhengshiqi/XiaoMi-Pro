@@ -173,7 +173,7 @@ function DGR() {
 
   if [[ -n ${GITHUB_ACTIONS+x} || ${GH_API} == False ]]; then
     rawURL="https://github.com/$1/$2/releases$tag"
-    URL="https://github.com$(local one=${"$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" )"#*href=\"} && local two=${one%\"\ rel*} && echo ${two})"
+    URL="https://github.com$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" | sed 's/^[^"]*"\([^"]*\)".*/\1/')"
   else
     rawURL="https://api.github.com/repos/$1/$2/releases$tag"
     URL="$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')"
@@ -186,7 +186,7 @@ function DGR() {
   echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
   echo "${cyan}"
   cd ./"$4" || exit 1
-  curl -# -L -O "${URL}" || networkErr "$2"
+  curl -L -O "${URL}" || networkErr "$2"
   cd - >/dev/null 2>&1 || exit 1
   echo "${reset}"
 }
