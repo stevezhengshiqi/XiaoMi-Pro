@@ -186,7 +186,7 @@ function DGR() {
   echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
   echo "${cyan}"
   cd ./"$4" || exit 1
-  curl -L -O "${URL}" || networkErr "$2"
+  curl -# -L -O "${URL}" || networkErr "$2"
   cd - >/dev/null 2>&1 || exit 1
   echo "${reset}"
 }
