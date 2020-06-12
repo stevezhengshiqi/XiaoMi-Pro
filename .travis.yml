@@ -14,8 +14,9 @@ matrix:
       - ./makefile.sh --NO_GH_API --VERSION=${VERSION}
 
     before_deploy:
-      git config --local user.email "${EMAIL_ADR}"
-      git tag "v${VERSION}"
+      - git config --local user.email "${EMAIL_ADR}"
+      - export TRAVIS_TAG="v${VERSION}"
+      - git tag ${TRAVIS_TAG}
     deploy:
       provider: releases
       skip_clean: true
