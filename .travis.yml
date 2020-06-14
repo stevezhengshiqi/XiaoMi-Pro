@@ -5,7 +5,7 @@ env:
     - secure: "YhP57nh7Dfv4C4VP4veGjb6rpb8cKCWm4C8iuNNGDaFv4+7xt3S/VhVzKWW32jPnISq61TZ7k5UsmH2seX5rFW4T09w3noGbEpKXNZsL9FJHDV4658fd5lcnpXLmyEFOvMeXjmsn0RiYW10M0XC/bZ4RowNBrRgaXEXzPIhdGH1hlKmRrS0xky2sGfi+z7/Gf9dG5Ah7J5XLoKy/43qs/ItXnoRHkKl7ir1MI2A5wE7pPfinjWQNX962qX+H+VCE/WwzHIyjHcckXGxbIV4JkZOQaZd/xkyMQ9Ug0UhjfB2Obs3U6UvUuo7QWF0o71lruFC5PPIJJcxXFQBpqBTMaTBHXjCrcC57HUxsQ/1gzHOVs8XdcbYR5s3ZkTYqlnnmjH8oqTgjEUbBE95QJcr04iw2wfF0b4WEscQv/qZrlY+3ios3IP5XLnUMMFc+HEBrCM546gqphJLWHQ+FBsntP4+qzr58FXJlreqTDHNcE4aC/xd8F6qblfw8odoEHK2Rm6x7JuRx5FNmwHfsQ67EyY4sx7BZTqcMeezs6uW/wqlLlj09zAPnXe6Ebq6IaJYxEKVM3Un6R/YDc3yVh+GZRP2DOdrwFyB5gs6nIwMRnRtjLXSaQk17E+xE88Dzbh9GG52D4QV9q6b9Y0XyufTWBqcpC8hofoFKNTXByfPJGSs="
     - VERSION="1.4.1-beta2"
     - printVersion=$(echo "${VERSION}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
-    - depRelease=ture
+    - depRelease=true
 
 jobs:
   include:
@@ -19,7 +19,6 @@ jobs:
 
     deploy:
       provider: releases
-      skip_cleanup: true
       file: "build/*.zip"
       file_glob: true
       edge: true
