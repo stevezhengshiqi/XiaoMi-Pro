@@ -508,19 +508,22 @@ function GenNote() {
   local printVersion
   local lineStart
   local lineEnd
+  local changelogPath
+
+  if [[ ${REMOTE} == True ]]; then
+    changelogPath="XiaoMi-Pro-Hackintosh-master/Changelog.md"
+  else
+    changelogPath="../Changelog.md"
+  fi
 
   printVersion=$(echo "${VERSION}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
   printf "## XiaoMi NoteBook Pro EFI %s\n" "${printVersion}" >> ReleaseNotes.md
   echo "#### Known Issue: \`IntelBluetoothFirmware.kext\` and \`IntelBluetoothInjector.kext\` may cause frequent KPs, please remove those kexts if you suffer from sleep problems." >> ReleaseNotes.md
 
-  lineStart=$(grep -n "XiaoMi NoteBook Pro EFI v" XiaoMi-Pro-Hackintosh-master/Changelog.md) && lineStart=${lineStart%%:*} && lineStart=$((lineStart+1))
-  lineEnd=$(grep -n -m2 "XiaoMi NoteBook Pro EFI v" XiaoMi-Pro-Hackintosh-master/Changelog.md | tail -n1)
+  lineStart=$(grep -n "XiaoMi NoteBook Pro EFI v" ${changelogPath}) && lineStart=${lineStart%%:*} && lineStart=$((lineStart+1))
+  lineEnd=$(grep -n -m2 "XiaoMi NoteBook Pro EFI v" ${changelogPath} | tail -n1)
   lineEnd=${lineEnd%%:*} && lineEnd=$((lineEnd-3))
-  if [[ ${LANGUAGE} == "EN" ]]; then
-    sed -n "${lineStart},${lineEnd}p" XiaoMi-Pro-Hackintosh-master/Changelog.md >> ReleaseNotes.md
-  elif [[ ${LANGUAGE} == "CN" ]]; then
-    sed -n "${lineStart},${lineEnd}p" XiaoMi-Pro-Hackintosh-master/Changelog_CN.md >> ReleaseNotes.md
-  fi
+  sed -n "${lineStart},${lineEnd}p" ${changelogPath} >> ReleaseNotes.md
   for RNotedir in "${OUTDir}" "${OUTDir_OC}"; do
     cp -R "ReleaseNotes.md" "${RNotedir}" || copyErr
   done
