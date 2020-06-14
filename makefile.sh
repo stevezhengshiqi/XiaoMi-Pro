@@ -255,7 +255,7 @@ function BKextHelper() {
   git clone --depth=1 https://github.com/"$1"/"$2".git >/dev/null 2>&1
   cd "$2" || exit 1
   if [[ "$2" == "VoodooPS2" ]]; then
-    sh -c "$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/VoodooInput/master/VoodooInput/Scripts/bootstrap.sh)" >/dev/null 2>&1 || exit 1
+    sh -c "$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/VoodooInput/master/VoodooInput/Scripts/bootstrap.sh)"
     xcodebuild -scheme VoodooPS2Controller -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
     cp -R ${PATH_TO_REL_PS2}*.kext "../" || copyErr
   elif [ "$2" == "VirtualSMC" ]; then
@@ -278,7 +278,7 @@ function BKextHelper() {
     lineNum=$(grep -n "Generate Documentation" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj) && lineNum=${lineNum%%:*}
     sed -i '' "${lineNum}d" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj
 
-    xcodebuild -scheme "$2" -configuration Release -sdk macosx10.12 -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+    xcodebuild -scheme "$2" -configuration Release -sdk macosx10.12 -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
     cp -R ${PATH_TO_REL}*.kext "../" || copyErr
   elif [[ "$2" == "Lilu" ]]; then
     rm -rf ../Lilu.kext
