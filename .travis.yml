@@ -1,15 +1,18 @@
-language: bash
+language: shell
 
 env:
   global:
     - secure: "YhP57nh7Dfv4C4VP4veGjb6rpb8cKCWm4C8iuNNGDaFv4+7xt3S/VhVzKWW32jPnISq61TZ7k5UsmH2seX5rFW4T09w3noGbEpKXNZsL9FJHDV4658fd5lcnpXLmyEFOvMeXjmsn0RiYW10M0XC/bZ4RowNBrRgaXEXzPIhdGH1hlKmRrS0xky2sGfi+z7/Gf9dG5Ah7J5XLoKy/43qs/ItXnoRHkKl7ir1MI2A5wE7pPfinjWQNX962qX+H+VCE/WwzHIyjHcckXGxbIV4JkZOQaZd/xkyMQ9Ug0UhjfB2Obs3U6UvUuo7QWF0o71lruFC5PPIJJcxXFQBpqBTMaTBHXjCrcC57HUxsQ/1gzHOVs8XdcbYR5s3ZkTYqlnnmjH8oqTgjEUbBE95QJcr04iw2wfF0b4WEscQv/qZrlY+3ios3IP5XLnUMMFc+HEBrCM546gqphJLWHQ+FBsntP4+qzr58FXJlreqTDHNcE4aC/xd8F6qblfw8odoEHK2Rm6x7JuRx5FNmwHfsQ67EyY4sx7BZTqcMeezs6uW/wqlLlj09zAPnXe6Ebq6IaJYxEKVM3Un6R/YDc3yVh+GZRP2DOdrwFyB5gs6nIwMRnRtjLXSaQk17E+xE88Dzbh9GG52D4QV9q6b9Y0XyufTWBqcpC8hofoFKNTXByfPJGSs="
-    - VERSION="1.4.1-beta1"
+    - VERSION="1.4.1-beta2"
+    - printVersion=$(echo "${VERSION}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
 
-matrix:
+jobs:
   include:
   - os: osx
     name: "Build"
-    
+    osx_image: xcode10.2
+    compiler: clang
+
     script:
       - ./makefile.sh --NO_GH_API --VERSION=${VERSION}
 
@@ -19,8 +22,8 @@ matrix:
       file: "build/*.zip"
       file_glob: true
       tag_name: "v${VERSION}"
-      name: "XiaoMi NoteBook Pro EFI v${VERSION}"
+      name: "XiaoMi NoteBook Pro EFI v${printVersion}"
       release_notes_file: "build/XiaoMi_Pro-v${VERSION}/ReleaseNotes.md"
       prerelease: true
-      api_key:
+      token:
         secure: A+0lg2hAM22w3sWNJi4V46HemBr5ENNASOVVCcudIJAmTJiKbwAoYV4OJvq+BhtOHv5I90n5IwYguAMPa/iN1Y8xG004vZ2I+aC5k+CDTXMI7s61AiAk5pkukI5SVca2TWvwv2m8wvhvSnOzSqeuBTUe21dEAh31VWcAAu6AgNiC/D302RUhpMnUxhxWBGN3ytlPpY6bJ1qqQX87TqnaqfdbCBqeD0sjHx0OEBqn/FIZpWnTwHhdJhIyYXaYmvMbhpkpq9hsNdvgwbeZD3R9A3114auefPT+hivUMejycFcpRbjyc6cf7QPaxBv1CewfWPZj30qZ3jx1aFqSD1EynRtu1goDIiL7qWAF+PlIDRmIyl/C1c2V721m8ayD8Lh1W8N6cGUOY+JYYldnv54CKLOF2wHkvt62IVJPP4ZME3J4pMKfOS7Nsf/JZu4prLXimaiZ4C7VLPIc5lvk+r2rDgECpyWLOVHz7K7LOsg0GiqNyKI5f08Q4y+K/bap1R6SxKt3sGncrkLv1sRpl2ttQ7c+jXSgqr2letfQlYMvzyUFJWfu6mphHU8v5h/PB0/rptv/eScg7YaPho5cBL2GjAGvtXxCs1YN7F0NH+k5MAxqvWIxXP7d5HoRJvKguRe0QYZ9Qo41MB5XGDUo/LHJsejC6VdKRsON7Gt1RSFCARg=
