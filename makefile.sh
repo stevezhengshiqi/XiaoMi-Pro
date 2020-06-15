@@ -252,7 +252,7 @@ function BKextHelper() {
 
   echo "${green}[${reset}${blue}${bold} Building $2 ${reset}${green}]${reset}"
   echo
-  git clone --depth=1 https://github.com/"$1"/"$2".git >/dev/null 2>&1
+  git clone --depth=50 https://github.com/"$1"/"$2".git >/dev/null 2>&1
   cd "$2" || exit 1
   if [[ "$2" == "VoodooPS2" ]]; then
     cp -R "../VoodooInput" "./" || copyErr
