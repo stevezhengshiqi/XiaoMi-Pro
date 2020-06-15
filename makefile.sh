@@ -207,7 +207,7 @@ function DBR() {
   local Count=0
   local rawURL="https://api.bitbucket.org/2.0/repositories/$1/$2/downloads/"
   local URL
-  while  [ ${Count} -lt 3 ];
+  while  [ ${Count} -lt 5 ];
   do
     URL="$(curl --silent "${rawURL}" | json_pp | grep 'href' | head -n 1 | tr -d '"' | tr -d ' ' | sed -e 's/href://')"
     if [ "${URL:(-4)}" == ".zip" ]; then
@@ -249,6 +249,7 @@ function CTrash() {
 function BKextHelper() {
   local PATH_TO_REL="build/Build/Products/Release/"
   local PATH_TO_REL_PS2="build/Products/Release/"
+  local PATH_TO_REL_LiluPlugIn="build/Release/"
 
   echo "${green}[${reset}${blue}${bold} Building $2 ${reset}${green}]${reset}"
   echo
@@ -256,7 +257,7 @@ function BKextHelper() {
   cd "$2" || exit 1
   if [[ "$2" == "VoodooPS2" ]]; then
     cp -R "../VoodooInput" "./" || copyErr
-    xcodebuild -scheme "VoodooPS2Controller" -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO || buildErr "$2"
+    xcodebuild -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO || buildErr "$2"
     cp -R ${PATH_TO_REL_PS2}*.kext "../" || copyErr
   elif [ "$2" == "VirtualSMC" ]; then
     cp -R "../Lilu.kext" "./" || copyErr
@@ -265,8 +266,8 @@ function BKextHelper() {
     cp -R ${PATH_TO_REL}*.kext "../Kexts/" || copyErr
   elif [ "$2" == "WhateverGreen" ] || [ "$2" == "AppleALC" ] || [ "$2" == "HibernationFixup" ] || [ "$2" == "NVMeFix" ]; then
     cp -R "../Lilu.kext" "./" || copyErr
-    xcodebuild -scheme "$2" -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
-    cp -R ${PATH_TO_REL}*.kext "../" || copyErr
+    xcodebuild -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+    cp -R ${PATH_TO_REL_LiluPlugIn}*.kext "../" || copyErr
   elif [[ "$2" == "VoodooI2C" ]]; then
     cp -R "../VoodooInput" "./Dependencies/" || copyErr
     git submodule init >/dev/null 2>&1 && git submodule update >/dev/null 2>&1
