@@ -1,0 +1,3 @@
+[submodule "ALCPlugFix"]
+	path = ALCPlugFix
+	url = https://github.com/Menchen/ALCPlugFix.git
