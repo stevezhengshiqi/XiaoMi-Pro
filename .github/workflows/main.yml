@@ -11,6 +11,8 @@ jobs:
   build-efi-release:
     name: Build EFI Release
     runs-on: macos-latest
+    env:
+      XCODE_VERSION: 12.2
     steps:
       - uses: actions/checkout@v2
 
@@ -18,8 +20,8 @@ jobs:
         run: |
           echo "CUR_TAG=\"${GITHUB_REF##*/}\"" >> $GITHUB_ENV
           echo "EFI_VERSION=$(echo \"${CUR_TAG}\" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')" >> $GITHUB_ENV
-          echo "DEVELOPER_DIR=\"/Applications/Xcode_12.2.app/Contents/Developer\"" >> $GITHUB_ENV
-          export DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
+          echo "DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer" >> $GITHUB_ENV
+          export DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer
 
       - name: Run makefile
         run: |
