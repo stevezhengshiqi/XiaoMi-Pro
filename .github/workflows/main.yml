@@ -16,9 +16,9 @@ jobs:
 
       - name: Initialize Variables
         run: |
-          CUR_TAG="${GITHUB_REF##*/}"
-          DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
-          EFI_VERSION=$(echo "${CUR_TAG}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
+          export CUR_TAG="${GITHUB_REF##*/}"
+          export DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
+          export EFI_VERSION=$(echo "${CUR_TAG}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
 
       - name: Run makefile
         run: |
