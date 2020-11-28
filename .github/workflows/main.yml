@@ -15,10 +15,10 @@ jobs:
       - uses: actions/checkout@v2
 
       - run: |
-        CUR_TAG="${GITHUB_REF##*/}"
-        DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
-        EFI_VERSION=$(echo "${CUR_TAG}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
-        ./makefile.sh --NO_GH_API --VERSION="${CUR_TAG}" --PRE_RELEASE=Kext --PRE_RELEASE=OC
+          CUR_TAG="${GITHUB_REF##*/}"
+          DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
+          EFI_VERSION=$(echo "${CUR_TAG}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
+          ./makefile.sh --NO_GH_API --VERSION="${CUR_TAG}" --PRE_RELEASE=Kext --PRE_RELEASE=OC
 
       - name: Upload to Release
         if: github.event_name == 'release'
