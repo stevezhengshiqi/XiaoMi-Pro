@@ -428,7 +428,6 @@ function BKextHelper() {
 }
 
 function BKext() {
-  local TRAVIS_TAG=""
   local sdkVer=""
 
   if [[ ${NO_XCODE} == True ]]; then
