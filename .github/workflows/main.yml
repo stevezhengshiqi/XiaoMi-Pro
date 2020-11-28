@@ -19,7 +19,6 @@ jobs:
       - name: Initialize Variables
         run: |
           echo "CUR_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
-          echo "EFI_VERSION=$(echo ${CUR_TAG} | sed 's/-/\ /g' | sed 's/beta/beta\ /g')" >> $GITHUB_ENV
           echo "DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer" >> $GITHUB_ENV
           export DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer
 
@@ -33,7 +32,7 @@ jobs:
         with:
           artifacts: build/*.zip
           bodyFile: build/XiaoMi_Pro-${{ env.CUR_TAG }}/ReleaseNotes.md
-          name: XiaoMi NoteBook Pro EFI ${{ env.EFI_VERSION }}
+          name: XiaoMi NoteBook Pro EFI ${{ env.CUR_TAG }}
           prerelease: false
           tag: ${{ env.CUR_TAG }}
           token: ${{ secrets.GITHUB_TOKEN }}
