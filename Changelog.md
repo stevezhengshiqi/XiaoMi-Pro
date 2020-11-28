@@ -1,16 +1,199 @@
 # XiaoMi NoteBook Pro EFI Changelog
 
-English | [中文](Changelog_CN.md)
+**English** | [中文](Changelog_CN.md)
 
-## [XiaoMi NoteBook Pro EFI v1.4.1 beta 1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.1-beta1)
-## X-XX-2020
+## XiaoMi NoteBook Pro EFI v1.4.8
+## 12-X-2020
 
 ### Update
+  - Update `OpenCore` v0.6.4
+  - Update `Clover` r5127 to support macOS11.0.1
+  - Update `Lilu` v1.5.0
+  - Update `VirtualSMC` v1.1.9
+  - Update `AppleALC` v1.5.5
+  - Update `VoodooI2C` v2.5.3
+  - Update `AirportItlwm` v1.2.0 (up to []())
+  - Update `SSDT-PNLF`
+  - Update `SSDT-RMNE`
+
+### Change
+  - Change `csr-active-config` to `30000000`
+
+### Clover
+  - Clover: Update config to support `Clover` r5127
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.4
+  - OC: Re-enable `IntelBluetoothInjector.kext` on macOS11.0+
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.7](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.7)
+## 11-3-2020
+
+### Remove
+  - Remove `AAPL,slot-name` to support HEVC on macOS11
+
+### Clover
+  - Clover: Add `AirportItlwm` to support native Intel Wi-Fi
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.6](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.6)
+## 11-2-2020
+
+### Update
+  - Update `OpenCore` v0.6.3
+  - Update `Lilu` v1.4.9
+  - Update `VirtualSMC` v1.1.8
+  - Update `AppleALC` v1.5.4
+  - Update `WhateverGreen` v1.4.4
+  - Update `HibernationFixup` v1.3.7
+  - Update `VoodooPS2` v2.1.8
+  - Update `VoodooI2C` v2.5.2
+
+### Clover
+  - Clover: Disable `RtcHibernateAware`, turn it on manually to improve hibernation
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.3
+  - OC: Add `AirportItlwm` to support native Intel Wi-Fi
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.5](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.5)
+## 10-5-2020
+
+### Update
+  - Update `OpenCore` v0.6.2
+  - Update `Lilu` v1.4.8
+  - Update `VirtualSMC` v1.1.7
+  - Update `AppleALC` v1.5.3
+  - Update `WhateverGreen` v1.4.3
+  - Update `HibernationFixup` v1.3.6
+  - Update `VoodooInput` v1.0.8
+  - Update `VoodooPS2` v2.1.7
+  - Update `VoodooI2C` v2.5.1
+
+### Remove
+  - Remove `-shikioff` because `Shiki` is necessary to play DRM
+
+### Clover
+  - Clover: Add back `RtcHibernateAware` to improve hibernation
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.2
+  - OC: Disable `IntelBluetoothInjector.kext` on macOS11.0+ to resume boot speed
+  - OC: Re-enable `Disable RTC wake scheduling` patch
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.4](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.4)
+## 9-8-2020
+
+### Update
+  - Update `Clover` r5122
+  - Update `OpenCore` v0.6.1
+  - Update `Lilu` v1.4.7
+  - Update `VirtualSMC` v1.1.6
+  - Update `AppleALC` v1.5.2
+  - Update `WhateverGreen` v1.4.2
+  - Update `HibernationFixup` v1.3.5
+  - Update `VoodooI2C` v2.4.4 (up to [VoodooI2C/VoodooI2C@3527ec3](https://github.com/VoodooI2C/VoodooI2C/commit/3527ec36d2f5860253544f39bec6f0998a7044e2))
+  - Update `SSDT-LGPAGTX`
+
+### Add
+  - Add `-shikioff` boot-args to disable `Shiki`
+
+### Remove
+  - Remove `NVMeFix` due to incompatibilities on some NVMe SSDs
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.1
+  - OC: Disable `Disable RTC wake scheduling` patch since it may cause Intel Wi-Fi unresponding after wake
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.3](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.3)
+## 8-3-2020
+
+### Update
+  - Update `Clover` r5120
+  - Update `OpenCore` v0.6.0
+  - Update `Lilu` v1.4.6
+  - Update `VirtualSMC` v1.1.5 to support macOS11.0 beta 3 (20A5323l)
+  - Update `AppleALC` v1.5.1
+  - Update `WhateverGreen` v1.4.1
+  - Update `VoodooPS2` v2.1.6
+  - Update `VoodooInput` v1.0.7
+  - Update `NVMeFix` v1.0.3
+  - Update `HibernationFixup` v1.3.4
+  - Update `IntelBluetoothFirmware` v1.1.2
+  - Update `SSDT-LGPA` to solve unexpected key press when wake up from sleep
+
+### Clover
+  - Clover: Update config to support `Clover` r5120
+  - Clover: Remove `SetIntelBacklight` and `SetIntelMaxBacklight` becuase we use `SSDT-PNLF`
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.0
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.2](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.2)
+## 7-16-2020
+
+### Update
+  - Update `OpenCore` v0.6.0 (up to [acidanthera/OpenCorePkg@20e60b0](https://github.com/acidanthera/OpenCorePkg/commit/20e60b0cbb273ea91a567440f0b7e230ecae3ec8))
+  - Update `Lilu` v1.4.6 (up to [acidanthera/Lilu@28122d0](https://github.com/acidanthera/Lilu/commit/28122d0084dc5fe1b486bd52945160cf5be64d49))
+  - Update `VirtualSMC` v1.1.5 (up to [acidanthera/VirtualSMC@fab53dc](https://github.com/acidanthera/VirtualSMC/commit/fab53dc600eef3b559c9a99b6cfd598c5f24927e)) to show battery percentage on macOS11
+  - Update `AppleALC` v1.5.1 (up to [acidanthera/AppleALC@f07c1f8](https://github.com/acidanthera/AppleALC/commit/f07c1f8c65270f58a50f96bac2588710d0ff7683))
+  - Update `WhateverGreen` v1.4.1 (up to [acidanthera/WhateverGreen@b97c692](https://github.com/acidanthera/WhateverGreen/commit/b97c692aee9672786a181423dd476a05782ba7e9))
+  - Update `VoodooPS2` v2.1.6 (up to [acidanthera/VoodooPS2@60a4566](https://github.com/acidanthera/VoodooPS2/commit/60a4566c237f9c39bf38122ec8c0910a388dbe9d))
+
+### Clover
+  - Clover: Remove `NoRomInfo` key
+
+### OC
+  - OC: Update config
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.1)
+## 7-12-2020
+
+### Update
+  - Update `OpenCore` v0.6.0 (up to [acidanthera/OpenCorePkg@eee51ba](https://github.com/acidanthera/OpenCorePkg/commit/eee51bae932b5a366351e994ea2a1909c46c3ebf)) to support macOS11.0 beta 1 (20A4299v)
+  - Update `Lilu` v1.4.6 (up to [acidanthera/Lilu@8a81e92](https://github.com/acidanthera/Lilu/commit/8a81e92f5641f9eee333d348d39add4ecaef0b37))
+  - Update `AppleALC` v1.5.1 (up to [acidanthera/AppleALC@df23c40](https://github.com/acidanthera/AppleALC/commit/df23c409d832449867263d4a5eb32aaa570935f3))
+  - Update `VirtualSMC` v1.1.5 (up to [acidanthera/VirtualSMC@90b1f45](https://github.com/acidanthera/VirtualSMC/commit/90b1f45475c82566fe6533c03f4938594f17bb49))
+  - Update `WhateverGreen` v1.4.1 (up to [acidanthera/WhateverGreen@39e3b55](https://github.com/acidanthera/WhateverGreen/commit/39e3b557fb55dcb0e38e6ecd05d217c780ba8a2c))
+  - Update `VoodooPS2` v2.1.6 (up to [acidanthera/VoodooPS2@071850a](https://github.com/acidanthera/VoodooPS2/commit/071850a089de027dad3b1d372b3a2a53f5813016))
+  - Update `VoodooInput` v1.0.7 (up to [acidanthera/VoodooInput@46a01f9](https://github.com/acidanthera/VoodooInput/commit/46a01f90c4c81cc193b57d523156cc035321e8ea))
+  - Update `VoodooI2C` v2.4.4 (up to [VoodooI2C/VoodooI2C@451739c](https://github.com/VoodooI2C/VoodooI2C/commit/451739ce4a736fa8afb591f73ef45f7fec240960))
+  - Update `NVMeFix` v1.0.3 (up to [acidanthera/NVMeFix@48a0fda](https://github.com/acidanthera/NVMeFix/commit/48a0fda97650fd6a7563d65e479421524685bcee))
+  - Update `HibernationFixup` v1.3.4 (up to [acidanthera/HibernationFixup@bb49d28](https://github.com/acidanthera/HibernationFixup/commit/bb49d28c7dd5d379f8729121c92bd9ad98509245))
+  - Update `IntelBluetoothFirmware` v1.1.1
+  - Update `SSDT-LGPA` and `SSDT-PS2K` to support native screenshot key, video mirror key, and mission control key; map PrtScn key to F11, Insert key to F12, and double-press Fn key to F13
+    - Video mirror key and mission control key are only for MX150 BIOS version >= 0A07
+
+### Change
+  - Disable `FBEnableDynamicCDCLK` since it will cause black screen wake from hibernation; for people who want to enable HiDPI resolution > 1424x802, please change the value for `framebuffer-flags` to `CwfjAA==`
+
+### Clover
+  - Clover: Add `OcQuirks.efi`, `OpenRuntime.efi`, and `OcQuirks.plist` to replace `AptioMemoryFix.efi`
+  - Clover: Add `NoRomInfo` to hide Apple ROM information
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.0
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.1 beta 1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.1-beta1)
+## 6-14-2020
+
+### Update
+  - Update `Clover` r5119
   - Update `VoodooI2C` v2.4.3
 
 ### Clover
   - Update `setpowerstate_panic=0` kernel patch
   - Remove `AudioDxe.efi`
+
+### OC
+  - Update config
 
 
 ## [XiaoMi NoteBook Pro EFI v1.4.0](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.0)
@@ -36,7 +219,7 @@ English | [中文](Changelog_CN.md)
   - Clover: Reverse back font.png in `Xiaomi` theme since `Clover` r5116 fixed the font problem
 
 ### OC
-  - OC: Update config to support  `OpenCore` v0.5.9
+  - OC: Update config to support `OpenCore` v0.5.9
 
 
 ## [XiaoMi NoteBook Pro EFI v1.3.9](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.3.9)
@@ -68,7 +251,7 @@ English | [中文](Changelog_CN.md)
   - Clover: Update font.png in `Xiaomi` theme to support `Clover` r5115
 
 ### OC
-  - OC: Update config to support  `OpenCore` v0.5.8
+  - OC: Update config to support `OpenCore` v0.5.8
 
 
 ## [XiaoMi NoteBook Pro EFI v1.3.8](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.3.8)
@@ -388,7 +571,7 @@ English | [中文](Changelog_CN.md)
 ## [XiaoMi NoteBook Pro EFI v1.2.5](https://github.com/stevezhengshiqi/XiaoMi-Pro/releases/tag/1.2.5)
 ## 8-9-2018
 
-  - Mojave installation become easier
+  - Mojave installation becomes easier
 
 ### Update
   - Update `Clover` r4641
@@ -498,7 +681,7 @@ English | [中文](Changelog_CN.md)
 ### Change
   - Fix the issue of percentage refreshes
   - Fix sound card sleep wake up soundless problem
-  - Fix screen brightness can not be saved problem
+  - Fix screen brightness can not be saved
 
 
 ## 11-7-2017
@@ -545,7 +728,7 @@ English | [中文](Changelog_CN.md)
 
 ## 10-18-2017
 
-  - tested graphics driver is not as good as the first version, now the graphics driver is restored to fake 0x19160000
+  - Beta graphics driver is not as good as the first version; now the graphics driver is restored to fake 0x19160000
 
 ### Remove
   - Remove `USBInjectAll`, replace with `SSDT-UIAC.aml` to customize USB device
@@ -574,4 +757,4 @@ English | [中文](Changelog_CN.md)
 
 ## 10-14-2017
 
-  - EFI update, trackpad is working
+  - EFI update, the trackpad is working

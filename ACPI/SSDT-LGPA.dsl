@@ -1,7 +1,8 @@
-// Necessary hotpatch for MX150, pair with `Rename Method(LGPA,1,S) to XGPA` rename patch
+// Necessary hotpatch for MX150, pair with `Rename Method(LGPA,1,S) to XGPA` rename patch and SSDT-PS2K
 // Maintained by: stevezhengshiqi
 // Reference: https://www.tonymacx86.com/threads/guide-patching-dsdt-ssdt-for-laptop-backlight-control.152659 by Rehabman
-// Let brightness key work with VoodooPS2Controller.kext
+// Let brightness key and screenshot key work with VoodooPS2Controller.kext, pair with LGPA rename and SSDT-PS2K
+// NOTE: Video Mirror key and Mission Control key require BIOS version >= 0A07
 
 DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
 {
@@ -51,28 +52,49 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
     External (_SB_.PCI0.WMIE.EVTA, IntObj)
     External (_SB_.PCI0.WMIE.EVTB, IntObj)
     External (_SB_.PCI0.WMIE.EVTC, IntObj)
+    External (_SB_.PCI0.WMIX, DeviceObj)
+    External (_SB_.PCI0.WMIX.EV01, IntObj)
+    External (_SB_.PCI0.WMIX.EV02, IntObj)
+    External (_SB_.PCI0.WMIX.EV03, IntObj)
+    External (_SB_.PCI0.WMIX.EV04, IntObj)
+    External (_SB_.PCI0.WMIX.EV05, IntObj)
+    External (_SB_.PCI0.WMIX.EV06, IntObj)
+    External (_SB_.PCI0.WMIX.EV07, IntObj)
+    External (_SB_.PCI0.WMIX.EV08, IntObj)
+    External (_SB_.PCI0.WMIX.EV09, IntObj)
+    External (_SB_.PCI0.WMIX.EV10, IntObj)
+    External (_SB_.PCI0.WMIX.EV11, IntObj)
+    External (_SB_.PCI0.WMIX.EV12, IntObj)
+    External (_SB_.PCI0.WMIX.EV13, IntObj)
+    External (_SB_.PCI0.WMIX.EV14, IntObj)
+    External (_SB_.PCI0.WMIX.EV15, IntObj)
+    External (_SB_.PCI0.WMIX.EV16, IntObj)
+    External (_SB_.PCI0.WMIX.EV17, IntObj)
+    External (_SB_.PCI0.WMIX.EV18, IntObj)
+    External (_SB_.PCI0.WMIX.EV5A, IntObj)
+    External (_SB_.PCI0.WMIX.EVX5, IntObj)
     External (_SB_.STXD, MethodObj)    // 2 Arguments
     External (_SB_.UBTC, DeviceObj)
-    External (_SB_.UBTC.CCI0, FieldUnitObj)
-    External (_SB_.UBTC.CCI1, FieldUnitObj)
-    External (_SB_.UBTC.CCI2, FieldUnitObj)
-    External (_SB_.UBTC.CCI3, FieldUnitObj)
-    External (_SB_.UBTC.MGI0, FieldUnitObj)
-    External (_SB_.UBTC.MGI1, FieldUnitObj)
-    External (_SB_.UBTC.MGI2, FieldUnitObj)
-    External (_SB_.UBTC.MGI3, FieldUnitObj)
-    External (_SB_.UBTC.MGI4, FieldUnitObj)
-    External (_SB_.UBTC.MGI5, FieldUnitObj)
-    External (_SB_.UBTC.MGI6, FieldUnitObj)
-    External (_SB_.UBTC.MGI7, FieldUnitObj)
-    External (_SB_.UBTC.MGI8, FieldUnitObj)
-    External (_SB_.UBTC.MGI9, FieldUnitObj)
-    External (_SB_.UBTC.MGIA, FieldUnitObj)
-    External (_SB_.UBTC.MGIB, FieldUnitObj)
-    External (_SB_.UBTC.MGIC, FieldUnitObj)
-    External (_SB_.UBTC.MGID, FieldUnitObj)
-    External (_SB_.UBTC.MGIE, FieldUnitObj)
-    External (_SB_.UBTC.MGIF, FieldUnitObj)
+    External (_SB_.UBTC.CCI0, IntObj)
+    External (_SB_.UBTC.CCI1, IntObj)
+    External (_SB_.UBTC.CCI2, IntObj)
+    External (_SB_.UBTC.CCI3, IntObj)
+    External (_SB_.UBTC.MGI0, IntObj)
+    External (_SB_.UBTC.MGI1, IntObj)
+    External (_SB_.UBTC.MGI2, IntObj)
+    External (_SB_.UBTC.MGI3, IntObj)
+    External (_SB_.UBTC.MGI4, IntObj)
+    External (_SB_.UBTC.MGI5, IntObj)
+    External (_SB_.UBTC.MGI6, IntObj)
+    External (_SB_.UBTC.MGI7, IntObj)
+    External (_SB_.UBTC.MGI8, IntObj)
+    External (_SB_.UBTC.MGI9, IntObj)
+    External (_SB_.UBTC.MGIA, IntObj)
+    External (_SB_.UBTC.MGIB, IntObj)
+    External (_SB_.UBTC.MGIC, IntObj)
+    External (_SB_.UBTC.MGID, IntObj)
+    External (_SB_.UBTC.MGIE, IntObj)
+    External (_SB_.UBTC.MGIF, IntObj)
     External (BSLF, IntObj)
     External (GPDI, FieldUnitObj)
     External (OG00, FieldUnitObj)
@@ -150,7 +172,17 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x05)
                 {
-                    ^HIDD.HPEM (0x08)
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV04 != Zero))
+                        {
+                            Notify (WMIX, 0x88) // Device-Specific
+                        }
+                    }
+                    Else
+                    {
+                        ^HIDD.HPEM (0x08)
+                    }
                 }
                 Case (0x06)
                 {
@@ -402,6 +434,14 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x0A)
                 {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV09 != Zero))
+                        {
+                            Notify (WMIX, 0x8E) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVT8 != Zero))
                     {
                         Notify (WMIE, 0x88) // Device-Specific
@@ -409,6 +449,14 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x0B)
                 {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV08 != Zero))
+                        {
+                            Notify (WMIX, 0x8D) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVT7 != Zero))
                     {
                         Notify (WMIE, 0x87) // Device-Specific
@@ -416,6 +464,14 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x0C)
                 {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV06 != Zero))
+                        {
+                            Notify (WMIX, 0x8B) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVT5 != Zero))
                     {
                         Notify (WMIE, 0x85) // Device-Specific
@@ -423,6 +479,14 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x0D)
                 {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV07 != Zero))
+                        {
+                            Notify (WMIX, 0x8C) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVT6 != Zero))
                     {
                         Notify (WMIE, 0x86) // Device-Specific
@@ -430,6 +494,21 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x0E)
                 {
+                    // Double Press Fn key
+                    If (_OSI ("Darwin"))
+                    {
+                        Notify (PS2K, 0x0429) // Press e029
+                        OG00 = Zero
+                    }
+
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV10 != Zero))
+                        {
+                            Notify (WMIX, 0x8F) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVT9 != Zero))
                     {
                         Notify (WMIE, 0x89) // Device-Specific
@@ -437,6 +516,14 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x0F)
                 {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV11 != Zero))
+                        {
+                            Notify (WMIX, 0x90) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVTA != Zero))
                     {
                         Notify (WMIE, 0x8A) // Device-Specific
@@ -444,6 +531,26 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x10)
                 {
+                    // Screenshot
+                    If (_OSI ("Darwin"))
+                    {
+                        Notify (PS2K, 0x0223) // Press Down e023
+                        Notify (PS2K, 0x0225) // Press Down e025
+                        Notify (PS2K, 0x0226) // Press Down e026
+                        Notify (PS2K, 0x02A6) // Press Up e026
+                        Notify (PS2K, 0x02A5) // Press Up e025
+                        Notify (PS2K, 0x02A3) // Press Up e023
+                        OG00 = Zero
+                    }
+
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV02 != Zero))
+                        {
+                            Notify (WMIX, 0x86) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVTB != Zero))
                     {
                         Notify (WMIE, 0x8B) // Device-Specific
@@ -478,6 +585,14 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 }
                 Case (0x13)
                 {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EVX5 != Zero))
+                        {
+                            Notify (WMIX, 0x91) // Device-Specific
+                        }
+                    }
+
                     If ((^^WMIE.EVTC != Zero))
                     {
                         Notify (WMIE, 0x8C) // Device-Specific
@@ -487,6 +602,134 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
                 {
                     OCPF = Zero
                     Notify (UBTC, One) // Device Check
+                }
+                Case (0x15)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        // Video Mirror
+                        If (_OSI ("Darwin"))
+                        {
+                            Notify (PS2K, 0x0225) // Press Down e025
+                            Notify (PS2K, 0x022B) // Press Down e02b
+                            Notify (PS2K, 0x02AB) // Press Up e02b
+                            Notify (PS2K, 0x02A5) // Press Up e025
+                            OG00 = Zero
+                        }
+                        ElseIf ((^^WMIX.EV01 != Zero))
+                        {
+                            Notify (WMIX, 0x85) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x16)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        // Mission Control
+                        If (_OSI ("Darwin"))
+                        {
+                            Notify (PS2K, 0x022C) // Press Down e02c
+                            Notify (PS2K, 0x022D) // Press Down e02d
+                            Notify (PS2K, 0x02AD) // Press Up e02d
+                            Notify (PS2K, 0x02AC) // Press Up e02c
+                            OG00 = Zero
+                        }
+                        ElseIf ((^^WMIX.EV03 != Zero))
+                        {
+                            Notify (WMIX, 0x87) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x17)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV05 != Zero))
+                        {
+                            Notify (WMIX, 0x89) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x18)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV5A != Zero))
+                        {
+                            Notify (WMIX, 0x8A) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x19)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV12 != Zero))
+                        {
+                            Notify (WMIX, 0x93) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x1A)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV13 != Zero))
+                        {
+                            Notify (WMIX, 0x94) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x1B)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV14 != Zero))
+                        {
+                            Notify (WMIX, 0x95) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x1C)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV15 != Zero))
+                        {
+                            Notify (WMIX, 0x96) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x1D)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV16 != Zero))
+                        {
+                            Notify (WMIX, 0x97) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x1E)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV17 != Zero))
+                        {
+                            Notify (WMIX, 0x98) // Device-Specific
+                        }
+                    }
+                }
+                Case (0x1F)
+                {
+                    If (CondRefOf (^^WMIX))
+                    {
+                        If ((^^WMIX.EV18 != Zero))
+                        {
+                            Notify (WMIX, 0x99) // Device-Specific
+                        }
+                    }
                 }
                 Case (0x0100)
                 {
@@ -499,4 +742,3 @@ DefinitionBlock ("", "SSDT", 2, "hack", "_LGPA", 0x00000000)
         }
     }
 }
-

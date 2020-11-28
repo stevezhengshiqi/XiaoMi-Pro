@@ -8,6 +8,58 @@
 # Reference:
 # https://github.com/williambj1/Hackintosh-EFI-Asus-Zephyrus-S-GX531/blob/master/Makefile.sh by @williambj1
 
+# Expected repository structure
+# .{REPO_NAME}
+# |____ACPI
+# | |____SSDT-ALS0.aml
+# | |____SSDT-DDGPU.aml
+# | |____SSDT-DMAC.aml
+# | |____SSDT-EC.aml
+# | |____SSDT-GPRW.aml
+# | |____SSDT-HPET.aml
+# | |____SSDT-LGPA.aml
+# | |____SSDT-LGPAGTX.aml
+# | |____SSDT-MCHC.aml
+# | |____SSDT-MEM2.aml
+# | |____SSDT-PMC.aml
+# | |____SSDT-PNLF.aml
+# | |____SSDT-PS2K.aml
+# | |____SSDT-RMNE.aml
+# | |____SSDT-TPD0.aml
+# | |____SSDT-USB-ALL.aml
+# | |____SSDT-USB-FingerBT.aml
+# | |____SSDT-USB-USBBT.aml
+# | |____SSDT-USB-WLAN_LTEBT.aml
+# | |____SSDT-USB.aml
+# | |____SSDT-XCPM.aml
+# |____ALCPlugFix
+# | |____ALCPlugFix
+# | | |____alc_fix
+# | | | |____good.win.ALCPlugFix.plist
+# | | | |____hda-verb
+# | | | |____install.sh
+# | | |____build
+# | | | |____Release
+# | | | | |____ALCPlugFix
+# | | |____README.MD
+# |____CLOVER
+# | |____themes
+# | |____config.plist
+# |____Docs
+# | |____Drive-Native-Intel-Wireless-Card.pdf
+# | |____FAQ.pdf
+# | |____README_CN_GTX.txt
+# | |____README_GTX.txt
+# | |____Set-DVMT-to-64mb.pdf
+# | |____Unlock-0xE2-MSR.pdf
+# | |____Work-Around-with-Bluetooth.pdf
+# |____OC
+# | |____config.plist
+# |____Changelog.md
+# |____LICENSE
+# |____README.md
+# |____README_CN.md
+# |____makefile.sh *
 
 # Vars
 ACDT="Acidanthera"
@@ -16,13 +68,16 @@ ERR_NO_EXIT=False
 GH_API=True
 LANGUAGE="EN"
 NO_XCODE=False
+OIW="OpenIntelWireless"
 PRE_RELEASE=""
 REMOTE=True
+REPO_NAME="XiaoMi-Pro-Hackintosh"
+REPO_NAME_BRANCH="${REPO_NAME}-master"
+RETRY_MAX=5
 VERSION="local"
 
 # Env
 if [ "$(which xcodebuild)" = "" ] || [ "$(which git)" = "" ]; then
-  echo "Missing Xcode tools, won't build kexts!"
   NO_XCODE=True
 fi
 
@@ -49,7 +104,7 @@ while [[ $# -gt 0 ]]; do
     ;;
     *)
     if [[ "${key}" =~ "--VERSION=" ]]; then
-      VERSION="v${key##*=}"
+      VERSION="${key##*=}"
       shift
     elif [[ "${key}" =~ "--PRE_RELEASE=" ]]; then
       PRE_RELEASE+="${key##*=}"
@@ -86,15 +141,27 @@ rmKexts=(
   os-x-null-ethernet
 )
 
+# Require Lilu to be the last for BKext()
 acdtKexts=(
   VirtualSMC
   WhateverGreen
   AppleALC
   HibernationFixup
-  NVMeFix
   VoodooPS2
   Lilu
 )
+
+oiwKexts=(
+  IntelBluetoothFirmware
+  itlwm
+)
+
+# Clean Up
+function Cleanup() {
+  if [[ ${CLEAN_UP} == True ]]; then
+    rm -rf "${WSDir}"
+  fi
+}
 
 # Exit on Network Issue
 function networkErr() {
@@ -126,33 +193,63 @@ function buildErr() {
   fi
 }
 
-# Clean Up
-function Cleanup() {
-  if [[ ${CLEAN_UP} == True ]]; then
+function Init() {
+  if [[ ${OSTYPE} != darwin* ]]; then
+    echo "This script can only run in macOS, aborting"
+    exit 1
+  fi
+
+  if [[ -d ${WSDir} ]]; then
     rm -rf "${WSDir}"
+  fi
+  mkdir "${WSDir}" || exit 1
+  cd "${WSDir}" || exit 1
+
+  local dirs=(
+    "${OUTDir}"
+    "${OUTDir_OC}"
+    "Clover"
+    "Clover/AppleSupportPkg_209"
+    "Clover/AppleSupportPkg_216"
+    "OpenCore"
+  )
+  for dir in "${dirs[@]}"; do
+    mkdir -p "${dir}" || exit 1
+  done
+  if [[ ${REMOTE} == True ]]; then
+    mkdir -p "${REPO_NAME_BRANCH}" || exit 1
+  fi
+
+  if [[ "$(dirname "$PWD")" =~ ${REPO_NAME} ]]; then
+    REMOTE=False;
   fi
 }
 
 # Workaround for Release Binaries that don't include "RELEASE" in their file names (head or grep)
 function H_or_G() {
   if [[ "$1" == "VoodooI2C" ]]; then
-    HG="head -n 1"
+    HGs=( "head -n 1" )
   elif [[ "$1" == "CloverBootloader" ]]; then
-    HG="grep -m 1 CloverV2"
+    HGs=( "grep -m 1 CloverV2" )
   elif [[ "$1" == "IntelBluetoothFirmware" ]]; then
-    HG="grep -m 1 IntelBluetooth"
-  elif [[ "$1" == "OpenCore-Factory" ]]; then
-    HG="grep -m 2 RELEASE | tail +2"
+    HGs=( "grep -m 1 IntelBluetooth" )
+  elif [[ "$1" == "itlwm" ]]; then
+    HGs=( "grep -m 1 AirportItlwm-Big_Sur"
+          "grep -m 1 AirportItlwm-Catalina"
+          "grep -m 1 AirportItlwm-High_Sierra"
+          "grep -m 1 AirportItlwm-Mojave"
+        )
   else
-    HG="grep -m 1 RELEASE"
+    HGs=( "grep -m 1 RELEASE" )
   fi
 }
 
 # Download GitHub Release
 function DGR() {
-  H_or_G "$2"
   local rawURL
-  local URL
+  local URLs=()
+
+  H_or_G "$2"
 
   if [[ -n ${3+x} ]]; then
     if [[ "$3" == "PreRelease" ]]; then
@@ -161,7 +258,13 @@ function DGR() {
       tag="/latest"
     else
       if [[ -n ${GITHUB_ACTIONS+x} || $GH_API == False ]]; then
-        tag="/tag/2.0.9"
+        if [[ "$2" == "AppleSupportPkg_209" ]]; then
+          tag="/tag/2.0.9"
+        elif [[ "$2" == "AppleSupportPkg_216" ]]; then
+          tag="/tag/2.1.6"
+        elif [[ "$2" == "CloverBootloader" ]]; then
+          tag="/tag/5122"
+        fi
       else
         # only release_id is supported
         tag="/$3"
@@ -172,23 +275,36 @@ function DGR() {
   fi
 
   if [[ -n ${GITHUB_ACTIONS+x} || ${GH_API} == False ]]; then
-    rawURL="https://github.com/$1/$2/releases$tag"
-    URL="https://github.com$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" | sed 's/^[^"]*"\([^"]*\)".*/\1/')"
+    if [[ "$2" == "AppleSupportPkg_209" || "$2" == "AppleSupportPkg_216" ]]; then
+      rawURL="https://github.com/$1/AppleSupportPkg/releases$tag"
+    else
+      rawURL="https://github.com/$1/$2/releases$tag"
+    fi
+    for HG in "${HGs[@]}"; do
+      URLs+=( "https://github.com$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" | sed 's/^[^"]*"\([^"]*\)".*/\1/')" )
+    done
   else
-    rawURL="https://api.github.com/repos/$1/$2/releases$tag"
-    URL="$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')"
+    if [[ "$2" == "AppleSupportPkg_209" || "$2" == "AppleSupportPkg_216" ]]; then
+      rawURL="https://api.github.com/repos/$1/AppleSupportPkg/releases$tag"
+    else
+      rawURL="https://api.github.com/repos/$1/$2/releases$tag"
+    fi
+    for HG in "${HGs[@]}"; do
+      URLs+=( "$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')" )
+    done
   fi
 
-  if [[ -z ${URL} || ${URL} == "https://github.com" ]]; then
-    networkErr "$2"
-  fi
-
-  echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
-  echo "${cyan}"
-  cd ./"$4" || exit 1
-  curl -# -L -O "${URL}" || networkErr "$2"
-  cd - >/dev/null 2>&1 || exit 1
-  echo "${reset}"
+  for URL in "${URLs[@]}"; do
+    if [[ -z ${URL} || ${URL} == "https://github.com" ]]; then
+      networkErr "$2"
+    fi
+    echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
+    echo "${cyan}"
+    cd ./"$4" || exit 1
+    curl -# -L -O "${URL}" || networkErr "$2"
+    cd - >/dev/null 2>&1 || exit 1
+    echo "${reset}"
+  done
 }
 
 # Download GitHub Source Code
@@ -207,7 +323,8 @@ function DBR() {
   local Count=0
   local rawURL="https://api.bitbucket.org/2.0/repositories/$1/$2/downloads/"
   local URL
-  while  [ ${Count} -lt 5 ];
+
+  while [ ${Count} -lt ${RETRY_MAX} ];
   do
     URL="$(curl --silent "${rawURL}" | json_pp | grep 'href' | head -n 1 | tr -d '"' | tr -d ' ' | sed -e 's/href://')"
     if [ "${URL:(-4)}" == ".zip" ]; then
@@ -223,8 +340,8 @@ function DBR() {
     fi
   done
 
-  if [ ${Count} -gt 2 ]; then
-    # if 3 times is over and still fail to download, exit
+  if [ ${Count} -ge ${RETRY_MAX} ]; then
+    # if ${RETRY_MAX} times are over and still fail to download, exit
     networkErr "$2"
   fi
 }
@@ -238,327 +355,86 @@ function DPB() {
   echo "${reset}"
 }
 
-# Exclude Trash
-function CTrash() {
-  if [[ ${CLEAN_UP} == True ]]; then
-    find . -maxdepth 1 ! -path "./${OUTDir}" ! -path "./${OUTDir_OC}" -exec rm -rf {} + >/dev/null 2>&1
-  fi
-}
-
 # Build Pre-release Kexts
 function BKextHelper() {
-  local PATH_TO_REL="build/Build/Products/Release/"
-  local PATH_TO_REL_PS2="build/Products/Release/"
-  local PATH_TO_REL_LiluPlugIn="build/Release/"
+  local liluPlugins="AppleALC HibernationFixup WhateverGreen VirtualSMC"
+  local voodooinputPlugins="VoodooI2C VoodooPS2"
+  local PATH_TO_DBG_BIG="Build/Products/Debug/"
+  local PATH_TO_REL="build/Release/"
+  local PATH_TO_REL_BIG="Build/Products/Release/"
+  local PATH_TO_REL_SMA="build/Products/Release/"
+  local lineNum
 
   echo "${green}[${reset}${blue}${bold} Building $2 ${reset}${green}]${reset}"
   echo
-  git clone --depth=50 https://github.com/"$1"/"$2".git >/dev/null 2>&1
+  git clone --depth=1 https://github.com/"$1"/"$2".git >/dev/null 2>&1
   cd "$2" || exit 1
-  if [[ "$2" == "VoodooPS2" ]]; then
-    cp -R "../VoodooInput" "./" || copyErr
-    xcodebuild -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO || buildErr "$2"
-    cp -R ${PATH_TO_REL_PS2}*.kext "../" || copyErr
-  elif [ "$2" == "VirtualSMC" ]; then
+  if [[ ${liluPlugins} =~ $2 ]]; then
+    cp -R "../MacKernelSDK" "./" || copyErr
     cp -R "../Lilu.kext" "./" || copyErr
-    xcodebuild -scheme Package -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
-    mkdir ../Kexts
-    cp -R ${PATH_TO_REL}*.kext "../Kexts/" || copyErr
-  elif [ "$2" == "WhateverGreen" ] || [ "$2" == "AppleALC" ] || [ "$2" == "HibernationFixup" ] || [ "$2" == "NVMeFix" ]; then
-    cp -R "../Lilu.kext" "./" || copyErr
-    xcodebuild -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
-    cp -R ${PATH_TO_REL_LiluPlugIn}*.kext "../" || copyErr
-  elif [[ "$2" == "VoodooI2C" ]]; then
-    cp -R "../VoodooInput" "./Dependencies/" || copyErr
-    git submodule init >/dev/null 2>&1 && git submodule update >/dev/null 2>&1
+    if [[ "$2" == "VirtualSMC" ]]; then
+      xcodebuild -jobs 1 -target Package -configuration Release >/dev/null 2>&1 || buildErr "$2"
+      mkdir ../Kexts
+      cp -R ${PATH_TO_REL}*.kext "../Kexts/" || copyErr
+    else
+      xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_REL}*.kext "../" || copyErr
+    fi
+  elif [[ ${voodooinputPlugins} =~ $2 ]]; then
+    if [[ "$2" == "VoodooI2C" ]]; then
+      cp -R "../VoodooInput" "./Dependencies/" || copyErr
+      git submodule init >/dev/null 2>&1 && git submodule update >/dev/null 2>&1
 
-    # Delete Linting & Generate Documentation in Build Phase to avoid installing cpplint & cldoc
-    local lineNum
-    lineNum=$(grep -n "Linting" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj) && lineNum=${lineNum%%:*}
-    sed -i '' "${lineNum}d" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj
-    lineNum=$(grep -n "Generate Documentation" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj) && lineNum=${lineNum%%:*}
-    sed -i '' "${lineNum}d" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj
+      # Delete Linting & Generate Documentation in Build Phase to avoid installing cpplint & cldoc
+      lineNum=$(grep -n "Linting" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj) && lineNum=${lineNum%%:*}
+      sed -i '' "${lineNum}d" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj
+      lineNum=$(grep -n "Generate Documentation" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj) && lineNum=${lineNum%%:*}
+      sed -i '' "${lineNum}d" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj
 
-    xcodebuild -scheme "$2" -configuration Release -sdk macosx10.12 -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
-    cp -R ${PATH_TO_REL}*.kext "../" || copyErr
+      xcodebuild -workspace "VoodooI2C.xcworkspace" -scheme "VoodooI2C" -sdk macosx10.12 -derivedDataPath . -arch x86_64 clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_REL_BIG}*.kext "../" || copyErr
+    else
+      cp -R "../MacKernelSDK" "./" || copyErr
+      cp -R "../VoodooInput" "./" || copyErr
+      xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_REL_SMA}*.kext "../" || copyErr
+    fi
   elif [[ "$2" == "Lilu" ]]; then
     rm -rf ../Lilu.kext
-    xcodebuild -scheme "$2" -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+    cp -R "../MacKernelSDK" "./" || copyErr
+    xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
     cp -R ${PATH_TO_REL}*.kext "../" || copyErr
   elif [[ "$2" == "IntelBluetoothFirmware" ]]; then
-    xcodebuild -scheme "$2" -configuration Release -sdk macosx10.12 -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
-    xcodebuild -scheme IntelBluetoothInjector -configuration Release -sdk macosx10.12 -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+    cp -R "../MacKernelSDK" "./" || copyErr
+
+    # Delete unrelated firmware and only keep ibt-12*.sfi for Intel Wireless 8265
+    cd "IntelBluetoothFirmware/fw/" && find . -maxdepth 1 -not -name "ibt-12*" -delete && cd "../../" || exit 1
+
+    xcodebuild -alltargets -configuration Release >/dev/null 2>&1 || buildErr "$2"
     cp -R ${PATH_TO_REL}*.kext "../" || copyErr
+  elif [[ "$2" == "itlwm" ]]; then
+    cp -R "../MacKernelSDK" "./" || copyErr
+
+    # Delete unrelated firmware and only keep iwm-8265* for Intel Wireless 8265
+    cd "itlwm/firmware/" && find . -maxdepth 1 -not -name "iwm-8265*" -delete && cd "../../" || exit 1
+
+    # Pass print syntax to support Python3
+    /usr/bin/sed -i "" "s:print compress(\"test\"):pass:g" "scripts/zlib_compress_fw.py"
+
+    xcodebuild -scheme "AirportItlwm (all)" -configuration Debug -derivedDataPath . >/dev/null 2>&1 || buildErr "$2"
+    cp -R ${PATH_TO_DBG_BIG}* "../" || copyErr
   fi
   cd ../ || exit 1
 }
 
-# Extract files for Clover
-function ExtractClover() {
-  # From CloverV2 and AppleSupportPkg v2.0.9
-  unzip -d "Clover" "Clover/*.zip" >/dev/null 2>&1
-  cp -R "Clover/CloverV2/EFI/BOOT" "${OUTDir}/EFI/" || copyErr
-  cp -R "Clover/CloverV2/EFI/CLOVER/CLOVERX64.efi" "${OUTDir}/EFI/CLOVER/" || copyErr
-  cp -R "Clover/CloverV2/EFI/CLOVER/tools" "${OUTDir}/EFI/CLOVER/" || copyErr
-  local driverItems=(
-    "Clover/CloverV2/EFI/CLOVER/drivers/off/UEFI/FileSystem/ApfsDriverLoader.efi"
-    "Clover/CloverV2/EFI/CLOVER/drivers/off/UEFI/MemoryFix/AptioMemoryFix.efi"
-    "Clover/CloverV2/EFI/CLOVER/drivers/UEFI/FSInject.efi"
-    "Clover/Drivers/AppleGenericInput.efi"
-    "Clover/Drivers/AppleUiSupport.efi"
-  )
-  for driverItem in "${driverItems[@]}"; do
-    cp -R "${driverItem}" "${OUTDir}/EFI/Clover/drivers/UEFI/" || copyErr
-  done
-}
-
-# Extract files from OpenCore
-function ExtractOC() {
-  mkdir -p "${OUTDir_OC}/EFI/OC/Tools" || exit 1
-  unzip -d "OpenCore" "OpenCore/*.zip" >/dev/null 2>&1
-  cp -R OpenCore/EFI/BOOT "${OUTDir_OC}/EFI/" || copyErr
-  cp -R OpenCore/EFI/OC/OpenCore.efi "${OUTDir_OC}/EFI/OC/" || copyErr
-  cp -R OpenCore/EFI/OC/Bootstrap "${OUTDir_OC}/EFI/OC/" || copyErr
-  local driverItems=(
-    "OpenCore/EFI/OC/Drivers/AudioDxe.efi"
-    "OpenCore/EFI/OC/Drivers/OpenCanopy.efi"
-    "OpenCore/EFI/OC/Drivers/OpenRuntime.efi"
-  )
-  local toolItems=(
-    "OpenCore/EFI/OC/Tools/CleanNvram.efi"
-    "OpenCore/EFI/OC/Tools/OpenShell.efi"
-  )
-  for driverItem in "${driverItems[@]}"; do
-    cp -R "${driverItem}" "${OUTDir_OC}/EFI/OC/Drivers/" || copyErr
-  done
-  for toolItem in "${toolItems[@]}"; do
-    cp -R "${toolItem}" "${OUTDir_OC}/EFI/OC/Tools/" || copyErr
-  done
-}
-
-# Unpack
-function Unpack() {
-  echo "${green}[${reset}${yellow}${bold} Unpacking ${reset}${green}]${reset}"
-  echo
-  unzip -qq "*.zip" >/dev/null 2>&1
-}
-
-# Install
-function Install() {
-  # Kexts
-  local kextItems=(
-    "AppleALC.kext"
-    "HibernationFixup.kext"
-    "IntelBluetoothFirmware.kext"
-    "IntelBluetoothInjector.kext"
-    "Lilu.kext"
-    "NVMeFix.kext"
-    "VoodooI2C.kext"
-    "VoodooI2CHID.kext"
-    "VoodooPS2Controller.kext"
-    "WhateverGreen.kext"
-    "hack-tools-master/kexts/EFICheckDisabler.kext"
-    "hack-tools-master/kexts/SATA-unsupported.kext"
-    "Kexts/SMCBatteryManager.kext"
-    "Kexts/SMCLightSensor.kext"
-    "Kexts/SMCProcessor.kext"
-    "Kexts/VirtualSMC.kext"
-    "Release/CodecCommander.kext"
-    "Release/NullEthernet.kext"
-  )
-
-  for Kextdir in "${OUTDir}/EFI/CLOVER/kexts/Other/" "${OUTDir_OC}/EFI/OC/Kexts/"; do
-    mkdir -p "${Kextdir}" || exit 1
-    for kextItem in "${kextItems[@]}"; do
-      cp -R "${kextItem}" "${Kextdir}" || copyErr
-    done
-  done
-
-  # Drivers
-  for Driverdir in "${OUTDir}/EFI/CLOVER/drivers/UEFI/" "${OUTDir_OC}/EFI/OC/Drivers/"; do
-    mkdir -p "${Driverdir}" || exit 1
-    cp -R "OcBinaryData-master/Drivers/HfsPlus.efi" "${Driverdir}" || copyErr
-  done
-
-  cp -R "VirtualSmc.efi" "${OUTDir}/EFI/CLOVER/drivers/UEFI/" || copyErr
-
-  if [[ ${REMOTE} == True ]]; then
-    cp -R "XiaoMi-Pro-Hackintosh-master/Docs/Drivers/AptioMemoryFix.efi" "${OUTDir}" || copyErr
-  else
-    cp -R "../Docs/Drivers/AptioMemoryFix.efi" "${OUTDir}" || copyErr
-  fi
-
-  # ACPI
-  local acpiItems
-  if [[ ${REMOTE} == True ]]; then
-    acpiItems=(
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-LGPAGTX.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-USB-ALL.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-USB-FingerBT.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-USB-USBBT.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-USB-WLAN_LTEBT.aml"
-    )
-    if [[ ${LANGUAGE} == "EN" ]]; then
-      acpiItems+=( "XiaoMi-Pro-Hackintosh-master/Docs/README_GTX.txt" )
-    elif [[ ${LANGUAGE} == "CN" ]]; then
-      acpiItems+=( "XiaoMi-Pro-Hackintosh-master/Docs/README_CN_GTX.txt" )
-    fi
-  else
-    acpiItems=(
-      "../ACPI/SSDT-LGPAGTX.aml"
-      "../ACPI/SSDT-USB-ALL.aml"
-      "../ACPI/SSDT-USB-FingerBT.aml"
-      "../ACPI/SSDT-USB-USBBT.aml"
-      "../ACPI/SSDT-USB-WLAN_LTEBT.aml"
-    )
-    if [[ ${LANGUAGE} == "EN" ]]; then
-      acpiItems+=( "../Docs/README_GTX.txt" )
-    elif [[ ${LANGUAGE} == "CN" ]]; then
-      acpiItems+=( "../Docs/README_CN_GTX.txt" )
-    fi
-  fi
-
-  for ACPIdir in "${OUTDir}" "${OUTDir_OC}"; do
-    for acpiItem in "${acpiItems[@]}"; do
-      cp -R "${acpiItem}" "${ACPIdir}" || copyErr
-    done
-  done
-
-  if [[ ${REMOTE} == True ]]; then
-    acpiItems=(
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-ALS0.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-DDGPU.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-DMAC.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-EC.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-GPRW.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-HPET.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-LGPA.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-MCHC.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-MEM2.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-PMC.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-PNLF.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-PS2K.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-RMNE.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-TPD0.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-USB.aml"
-      "XiaoMi-Pro-Hackintosh-master/ACPI/SSDT-XCPM.aml"
-    )
-  else
-    acpiItems=(
-      "../ACPI/SSDT-ALS0.aml"
-      "../ACPI/SSDT-DDGPU.aml"
-      "../ACPI/SSDT-DMAC.aml"
-      "../ACPI/SSDT-EC.aml"
-      "../ACPI/SSDT-GPRW.aml"
-      "../ACPI/SSDT-HPET.aml"
-      "../ACPI/SSDT-LGPA.aml"
-      "../ACPI/SSDT-MCHC.aml"
-      "../ACPI/SSDT-MEM2.aml"
-      "../ACPI/SSDT-PMC.aml"
-      "../ACPI/SSDT-PNLF.aml"
-      "../ACPI/SSDT-PS2K.aml"
-      "../ACPI/SSDT-RMNE.aml"
-      "../ACPI/SSDT-TPD0.aml"
-      "../ACPI/SSDT-USB.aml"
-      "../ACPI/SSDT-XCPM.aml"
-    )
-  fi
-
-  for ACPIdir in "${OUTDir}/EFI/CLOVER/ACPI/patched/" "${OUTDir_OC}/EFI/OC/ACPI/"; do
-    mkdir -p "${ACPIdir}" || exit 1
-    for acpiItem in "${acpiItems[@]}"; do
-      cp -R "${acpiItem}" "${ACPIdir}" || copyErr
-    done
-  done
-
-  # Theme
-  if [[ ${REMOTE} == True ]]; then
-    cp -R "XiaoMi-Pro-Hackintosh-master/CLOVER/themes" "${OUTDir}/EFI/CLOVER/" || copyErr
-  else
-    cp -R "../CLOVER/themes" "${OUTDir}/EFI/CLOVER/" || copyErr
-  fi
-
-  cp -R "OcBinaryData-master/Resources" "${OUTDir_OC}/EFI/OC/" || copyErr
-
-  # config & README
-  if [[ ${REMOTE} == True ]]; then
-    cp -R "XiaoMi-Pro-Hackintosh-master/CLOVER/config.plist" "${OUTDir}/EFI/CLOVER/" || copyErr
-    cp -R "XiaoMi-Pro-Hackintosh-master/OC/config.plist" "${OUTDir_OC}/EFI/OC/" || copyErr
-    for READMEdir in "${OUTDir}" "${OUTDir_OC}"; do
-      if [[ ${LANGUAGE} == "EN" ]]; then
-        cp -R "XiaoMi-Pro-Hackintosh-master/README.md" "${READMEdir}" || copyErr
-      elif [[ ${LANGUAGE} == "CN" ]]; then
-        cp -R "XiaoMi-Pro-Hackintosh-master/README_CN.md" "${READMEdir}" || copyErr
-      fi
-    done
-  else
-    cp -R "../CLOVER/config.plist" "${OUTDir}/EFI/CLOVER/" || copyErr
-    cp -R "../OC/config.plist" "${OUTDir_OC}/EFI/OC/" || copyErr
-    for READMEdir in "${OUTDir}" "${OUTDir_OC}"; do
-      if [[ ${LANGUAGE} == "EN" ]]; then
-        cp -R "../README.md" "${READMEdir}" || copyErr
-      elif [[ ${LANGUAGE} == "CN" ]]; then
-        cp -R "../README_CN.md" "${READMEdir}" || copyErr
-      fi
-    done
-  fi
-}
-
-# Generate Release Note
-function GenNote() {
-  local printVersion
-  local lineStart
-  local lineEnd
-  local changelogPath
-
-  if [[ ${REMOTE} == True ]]; then
-    changelogPath="XiaoMi-Pro-Hackintosh-master/Changelog.md"
-  else
-    changelogPath="../Changelog.md"
-  fi
-
-  printVersion=$(echo "${VERSION}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
-  printf "## XiaoMi NoteBook Pro EFI %s\n" "${printVersion}" >> ReleaseNotes.md
-  echo "#### Known Issue: \`IntelBluetoothFirmware.kext\` and \`IntelBluetoothInjector.kext\` may cause frequent KPs, please remove those kexts if you suffer from sleep problems." >> ReleaseNotes.md
-
-  lineStart=$(grep -n "XiaoMi NoteBook Pro EFI v" ${changelogPath}) && lineStart=${lineStart%%:*} && lineStart=$((lineStart+1))
-  lineEnd=$(grep -n -m2 "XiaoMi NoteBook Pro EFI v" ${changelogPath} | tail -n1)
-  lineEnd=${lineEnd%%:*} && lineEnd=$((lineEnd-3))
-  sed -n "${lineStart},${lineEnd}p" ${changelogPath} >> ReleaseNotes.md
-  for RNotedir in "${OUTDir}" "${OUTDir_OC}"; do
-    cp -R "ReleaseNotes.md" "${RNotedir}" || copyErr
-  done
-}
-
-# Patch
-function Patch() {
-  local unusedItems=(
-    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext.dSYM"
-    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext/Contents/_CodeSignature"
-    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext"
-    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext"
-    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext"
-  )
-  for unusedItem in "${unusedItems[@]}"; do
-    rm -rf "${unusedItem}"
-  done
-
-  cd "OcBinaryData-master/Resources/Audio/" && find . -maxdepth 1 -not -name "OCEFIAudio_VoiceOver_Boot.wav" -delete && cd "${WSDir}" || exit 1
-}
-
-# Enjoy
-function Enjoy() {
-  for BUILDdir in "${OUTDir}" "${OUTDir_OC}"; do
-    zip -qr "${BUILDdir}.zip" "${BUILDdir}"
-  done
-  echo "${red}[${reset}${blue}${bold} Done! Enjoy! ${reset}${red}]${reset}"
-  echo
-  open ./
-}
-
 function BKext() {
   local TRAVIS_TAG=""
+  local sdkVer=""
 
+  if [[ ${NO_XCODE} == True ]]; then
+    echo "${yellow}[${reset}${red}${bold} ERROR ${reset}${yellow}]${reset}: Missing Xcode tools, won't build kexts!"
+    exit 1
+  fi
   if [[ ! -d "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk" ]]; then
     echo "${green}[${reset}${blue}${bold} Downloading MacOSX10.12.sdk ${reset}${green}]${reset}"
     echo "${cyan}"
@@ -566,14 +442,21 @@ function BKext() {
     echo "${reset}"
     sudo cp -R "MacOSX10.12.sdk" "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" || copyErr
   fi
+  sdkVer=$(/usr/libexec/PlistBuddy -c 'Print MinimumSDKVersion' "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Info.plist")
+  if [[ ${sdkVer//./} -gt 1012 ]]; then
+    sudo /usr/libexec/PlistBuddy -c "Set :MinimumSDKVersion 10.12" "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Info.plist"
+  fi
 
+  git clone https://github.com/acidanthera/MacKernelSDK >/dev/null 2>&1
   src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts/bootstrap.sh) && eval "$src" >/dev/null 2>&1 || exit 1
   src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/VoodooInput/master/VoodooInput/Scripts/bootstrap.sh) && eval "$src" >/dev/null 2>&1 || exit 1
   for acdtKext in "${acdtKexts[@]}"; do
     BKextHelper ${ACDT} "${acdtKext}"
   done
+  for oiwKext in "${oiwKexts[@]}"; do
+    BKextHelper ${OIW} "${oiwKext}"
+  done
   BKextHelper VoodooI2C VoodooI2C
-  BKextHelper zxystd IntelBluetoothFirmware
   echo "${yellow}[${bold} WARNING ${reset}${yellow}]${reset}: Please clean Xcode cache in ~/Library/Developer/Xcode/DerivedData!"
   echo "${yellow}[${bold} WARNING ${reset}${yellow}]${reset}: Some kexts only work on current macOS SDK build!"
   echo
@@ -595,20 +478,25 @@ function DL() {
     DBR Rehabman "${rmKext}"
   done
 
-  if [[ ${PRE_RELEASE} =~ "Kext" ]] && [ ${NO_XCODE} == "False" ]; then
+  if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
     BKext
   else
     for acdtKext in "${acdtKexts[@]}"; do
       DGR ${ACDT} "${acdtKext}"
     done
+    for oiwKext in "${oiwKexts[@]}"; do
+      DGR ${OIW} "${oiwKext}" PreRelease
+    done
     DGR VoodooI2C VoodooI2C
-    DGR zxystd IntelBluetoothFirmware
   fi
 
   DGS RehabMan hack-tools
 
   # UEFI drivers
-  DGR ${ACDT} AppleSupportPkg 19214108 "Clover"
+  # AppleSupportPkg v2.0.9
+  DGR ${ACDT} AppleSupportPkg_209 19214108 "Clover/AppleSupportPkg_209"
+  # AppleSupportPkg v2.1.6
+  DGR ${ACDT} AppleSupportPkg_216 24123335 "Clover/AppleSupportPkg_216"
 
   # UEFI
   # DPB ${ACDT} OcBinaryData Drivers/HfsPlus.efi
@@ -619,36 +507,365 @@ function DL() {
 
   # XiaoMi-Pro ACPI patch
   if [[ ${REMOTE} == True ]]; then
-    DGS daliansky XiaoMi-Pro-Hackintosh
+    DGS daliansky ${REPO_NAME}
+  fi
+
+  # Menchen's ALCPlugFix
+  if [[ ${REMOTE} == True ]]; then
+    DGS Menchen ALCPlugFix
   fi
 }
 
-function Init() {
-  if [[ ${OSTYPE} != darwin* ]]; then
-    echo "This script can only run in macOS, aborting"
-    exit 1
-  fi
+# Unpack
+function Unpack() {
+  echo "${green}[${reset}${yellow}${bold} Unpacking ${reset}${green}]${reset}"
+  echo
+  unzip -qq "*.zip" >/dev/null 2>&1
+}
 
-  if [[ -d ${WSDir} ]]; then
-    rm -rf "${WSDir}"
-  fi
-  mkdir "${WSDir}" || exit 1
-  cd "${WSDir}" || exit 1
-
-  local dirs=(
-    "${OUTDir}"
-    "${OUTDir_OC}"
-    "XiaoMi-Pro-Hackintosh-master"
-    "Clover"
-    "OpenCore"
+# Patch
+function Patch() {
+  local unusedItems=(
+    "IntelBluetoothInjector.kext/Contents/_CodeSignature"
+    "IntelBluetoothInjector.kext/Contents/MacOS"
+    "Release/CodecCommander.kext/Contents/Resources"
+    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext.dSYM"
+    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext/Contents/_CodeSignature"
+    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext"
+    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext"
+    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext"
   )
-  for dir in "${dirs[@]}"; do
-    mkdir -p "${dir}" || exit 1
+  echo "${green}[${reset}${blue}${bold} Patching Resources ${reset}${green}]${reset}"
+  echo
+  for unusedItem in "${unusedItems[@]}"; do
+    rm -rf "${unusedItem}" >/dev/null 2>&1
   done
 
-  if [[ "$(dirname "$PWD")" =~ "XiaoMi-Pro-Hackintosh" ]]; then
-    REMOTE=False;
+  # Only keep OCEFIAudio_VoiceOver_Boot.wav in OcBinaryData/Resources/Audio
+  cd "OcBinaryData-master/Resources/Audio/" && find . -maxdepth 1 -not -name "OCEFIAudio_VoiceOver_Boot.wav" -delete && cd "${WSDir}" || exit 1
+
+  # Rename AirportItlwm.kexts to distinguish different versions
+  mv "Big Sur/AirportItlwm.kext" "Big Sur/AirportItlwm_Big_Sur.kext" || exit 1
+  mv "Catalina/AirportItlwm.kext" "Catalina/AirportItlwm_Catalina.kext" || exit 1
+  mv "High Sierra/AirportItlwm.kext" "High Sierra/AirportItlwm_High_Sierra.kext" || exit 1
+  mv "Mojave/AirportItlwm.kext" "Mojave/AirportItlwm_Mojave.kext" || exit 1
+}
+
+# Install
+function Install() {
+  local acpiItems
+  local alcfixItems
+  local btItems
+  local gtxItems
+  local kextItems
+  local wikiItems
+
+  # Kexts
+  kextItems=(
+    "AppleALC.kext"
+    "HibernationFixup.kext"
+    "IntelBluetoothFirmware.kext"
+    "IntelBluetoothInjector.kext"
+    "Lilu.kext"
+    "VoodooI2C.kext"
+    "VoodooI2CHID.kext"
+    "VoodooPS2Controller.kext"
+    "WhateverGreen.kext"
+    "hack-tools-master/kexts/EFICheckDisabler.kext"
+    "hack-tools-master/kexts/SATA-unsupported.kext"
+    "Kexts/SMCBatteryManager.kext"
+    "Kexts/SMCLightSensor.kext"
+    "Kexts/SMCProcessor.kext"
+    "Kexts/VirtualSMC.kext"
+    "Release/CodecCommander.kext"
+    "Release/NullEthernet.kext"
+  )
+
+  wifiKextItems=(
+    "Big Sur/AirportItlwm_Big_Sur.kext"
+    "Catalina/AirportItlwm_Catalina.kext"
+    "High Sierra/AirportItlwm_High_Sierra.kext"
+    "Mojave/AirportItlwm_Mojave.kext"
+  )
+
+  cloverKextFolders=(
+    "10.13"
+    "10.14"
+    "10.15"
+    "11"
+  )
+
+  echo "${green}[${reset}${blue}${bold} Installing Kexts ${reset}${green}]${reset}"
+  echo
+  for Kextdir in "${OUTDir}/EFI/CLOVER/kexts/Other/" "${OUTDir_OC}/EFI/OC/Kexts/"; do
+    mkdir -p "${Kextdir}" || exit 1
+    for kextItem in "${kextItems[@]}"; do
+      cp -R "${kextItem}" "${Kextdir}" || copyErr
+    done
+  done
+
+  for cloverKextFolder in "${cloverKextFolders[@]}"; do
+    mkdir -p "${OUTDir}/EFI/CLOVER/kexts/${cloverKextFolder}" || exit 1
+  done
+
+  cp -R "Big Sur/AirportItlwm_Big_Sur.kext" "${OUTDir}/EFI/CLOVER/kexts/11" || copyErr
+  cp -R "Catalina/AirportItlwm_Catalina.kext" "${OUTDir}/EFI/CLOVER/kexts/10.15" || copyErr
+  cp -R "High Sierra/AirportItlwm_High_Sierra.kext" "${OUTDir}/EFI/CLOVER/kexts/10.13" || copyErr
+  cp -R "Mojave/AirportItlwm_Mojave.kext" "${OUTDir}/EFI/CLOVER/kexts/10.14" || copyErr
+
+  for kextItem in "${wifiKextItems[@]}"; do
+    cp -R "${kextItem}" "${OUTDir_OC}/EFI/OC/Kexts/" || copyErr
+  done
+
+  # Drivers
+  echo "${green}[${reset}${blue}${bold} Installing Drivers ${reset}${green}]${reset}"
+  echo
+  for Driverdir in "${OUTDir}/EFI/CLOVER/drivers/UEFI/" "${OUTDir_OC}/EFI/OC/Drivers/"; do
+    mkdir -p "${Driverdir}" || exit 1
+    cp -R "OcBinaryData-master/Drivers/HfsPlus.efi" "${Driverdir}" || copyErr
+  done
+  cp -R "OcBinaryData-master/Drivers/ExFatDxe.efi" "${OUTDir_OC}/EFI/OC/Drivers/" || copyErr
+  cp -R "VirtualSmc.efi" "${OUTDir}/EFI/CLOVER/drivers/UEFI/" || copyErr
+
+  # ACPI
+  acpiItems=(
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-ALS0.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-DDGPU.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-DMAC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-EC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-GPRW.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-HPET.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-LGPA.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-MCHC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-MEM2.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-PMC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-PNLF.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-PS2K.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-RMNE.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-TPD0.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-XCPM.aml"
+  )
+  if [[ ${REMOTE} == False ]]; then
+    acpiItems=("${acpiItems[@]/${REPO_NAME_BRANCH}/..}")
   fi
+
+  echo "${green}[${reset}${blue}${bold} Installing ACPIs ${reset}${green}]${reset}"
+  echo
+  for ACPIdir in "${OUTDir}/EFI/CLOVER/ACPI/patched/" "${OUTDir_OC}/EFI/OC/ACPI/"; do
+    mkdir -p "${ACPIdir}" || exit 1
+    for acpiItem in "${acpiItems[@]}"; do
+      cp -R "${acpiItem}" "${ACPIdir}" || copyErr
+    done
+  done
+
+  # Theme
+  echo "${green}[${reset}${blue}${bold} Installing Themes ${reset}${green}]${reset}"
+  echo
+  if [[ ${REMOTE} == True ]]; then
+    cp -R "${REPO_NAME_BRANCH}/CLOVER/themes" "${OUTDir}/EFI/CLOVER/" || copyErr
+  else
+    cp -R "../CLOVER/themes" "${OUTDir}/EFI/CLOVER/" || copyErr
+  fi
+
+  cp -R "OcBinaryData-master/Resources" "${OUTDir_OC}/EFI/OC/" || copyErr
+
+  # config & README & LICENSE
+  echo "${green}[${reset}${blue}${bold} Installing config & README & LICENSE ${reset}${green}]${reset}"
+  echo
+  if [[ ${REMOTE} == True ]]; then
+    cp -R "${REPO_NAME_BRANCH}/CLOVER/config.plist" "${OUTDir}/EFI/CLOVER/" || copyErr
+    cp -R "${REPO_NAME_BRANCH}/OC/config.plist" "${OUTDir_OC}/EFI/OC/" || copyErr
+    for READMEdir in "${OUTDir}" "${OUTDir_OC}"; do
+      if [[ ${LANGUAGE} == "EN" ]]; then
+        cp -R "${REPO_NAME_BRANCH}/README.md" "${READMEdir}" || copyErr
+      elif [[ ${LANGUAGE} == "CN" ]]; then
+        cp -R "${REPO_NAME_BRANCH}/README_CN.md" "${READMEdir}" || copyErr
+      fi
+      cp -R "${REPO_NAME_BRANCH}/LICENSE" "${READMEdir}" || copyErr
+    done
+  else
+    cp -R "../CLOVER/config.plist" "${OUTDir}/EFI/CLOVER/" || copyErr
+    cp -R "../OC/config.plist" "${OUTDir_OC}/EFI/OC/" || copyErr
+    for READMEdir in "${OUTDir}" "${OUTDir_OC}"; do
+      if [[ ${LANGUAGE} == "EN" ]]; then
+        cp -R "../README.md" "${READMEdir}" || copyErr
+      elif [[ ${LANGUAGE} == "CN" ]]; then
+        cp -R "../README_CN.md" "${READMEdir}" || copyErr
+      fi
+      cp -R "../LICENSE" "${READMEdir}" || copyErr
+    done
+  fi
+
+  # Bluetooth & GTX & wiki
+  btItems=(
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-ALL.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-FingerBT.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-USBBT.aml"
+    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-WLAN_LTEBT.aml"
+    "${REPO_NAME_BRANCH}/Docs/Work-Around-with-Bluetooth.pdf"
+  )
+  if [[ ${REMOTE} == False ]]; then
+    btItems=("${btItems[@]/${REPO_NAME_BRANCH}/..}")
+  fi
+
+  echo "${green}[${reset}${blue}${bold} Installing Docs About Bluetooth & GTX & wiki ${reset}${green}]${reset}"
+  echo
+  for BTdir in "${OUTDir}/Bluetooth" "${OUTDir_OC}/Bluetooth"; do
+    mkdir -p "${BTdir}" || exit 1
+    for btItem in "${btItems[@]}"; do
+      cp -R "${btItem}" "${BTdir}" || copyErr
+    done
+  done
+
+  gtxItems=( "${REPO_NAME_BRANCH}/ACPI/SSDT-LGPAGTX.aml" )
+  if [[ ${LANGUAGE} == "EN" ]]; then
+    gtxItems+=( "${REPO_NAME_BRANCH}/Docs/README_GTX.txt" )
+  elif [[ ${LANGUAGE} == "CN" ]]; then
+    gtxItems+=( "${REPO_NAME_BRANCH}/Docs/README_CN_GTX.txt" )
+  fi
+  if [[ ${REMOTE} == False ]]; then
+    gtxItems=("${gtxItems[@]/${REPO_NAME_BRANCH}/..}")
+  fi
+
+  for GTXdir in "${OUTDir}/GTX" "${OUTDir_OC}/GTX"; do
+    mkdir -p "${GTXdir}" || exit 1
+    for gtxItem in "${gtxItems[@]}"; do
+      cp -R "${gtxItem}" "${GTXdir}" || copyErr
+    done
+  done
+
+  wikiItems=(
+    "${REPO_NAME_BRANCH}/Docs/FAQ.pdf"
+    "${REPO_NAME_BRANCH}/Docs/Drive-Native-Intel-Wireless-Card.pdf"
+    "${REPO_NAME_BRANCH}/Docs/Set-DVMT-to-64mb.pdf"
+    "${REPO_NAME_BRANCH}/Docs/Unlock-0xE2-MSR.pdf"
+  )
+  if [[ ${REMOTE} == False ]]; then
+    wikiItems=("${wikiItems[@]/${REPO_NAME_BRANCH}/..}")
+  fi
+
+  for WIKIdir in "${OUTDir}/Docs" "${OUTDir_OC}/Docs"; do
+    mkdir -p "${WIKIdir}" || exit 1
+    for wikiItem in "${wikiItems[@]}"; do
+      cp -R "${wikiItem}" "${WIKIdir}" || copyErr
+    done
+  done
+
+  # ALCPlugFix
+  alcfixItems=(
+    "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/alc_fix"
+    "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/build"
+    "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/README.MD"
+  )
+  if [[ ${REMOTE} == True ]]; then
+    cp -R ALCPlugFix-master/* "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/" || copyErr
+  else
+    alcfixItems=("${alcfixItems[@]/${REPO_NAME_BRANCH}/..}")
+    cd "../" || exit 1
+    git submodule init && git submodule update --remote && cd "${WSDir}" || exit 1
+  fi
+
+  echo "${green}[${reset}${blue}${bold} Installing ALCPlugFix ${reset}${green}]${reset}"
+  echo
+  for ALCPFdir in "${OUTDir}/ALCPlugFix" "${OUTDir_OC}/ALCPlugFix"; do
+    mkdir -p "${ALCPFdir}" || exit 1
+    for alcfixItem in "${alcfixItems[@]}"; do
+      cp -R "${alcfixItem}" "${ALCPFdir}" || copyErr
+    done
+  done
+}
+
+# Extract files for Clover
+function ExtractClover() {
+  echo "${green}[${reset}${blue}${bold} Extracting Clover ${reset}${green}]${reset}"
+  echo
+  # From CloverV2, AppleSupportPkg v2.0.9, and AppleSupportPkg v2.1.6
+  unzip -d "Clover" "Clover/*.zip" >/dev/null 2>&1
+  unzip -d "Clover/AppleSupportPkg_209" "Clover/AppleSupportPkg_209/*.zip" >/dev/null 2>&1
+  unzip -d "Clover/AppleSupportPkg_216" "Clover/AppleSupportPkg_216/*.zip" >/dev/null 2>&1
+  cp -R "Clover/CloverV2/EFI/BOOT" "${OUTDir}/EFI/" || copyErr
+  cp -R "Clover/CloverV2/EFI/CLOVER/CLOVERX64.efi" "${OUTDir}/EFI/CLOVER/" || copyErr
+  cp -R "Clover/CloverV2/EFI/CLOVER/tools" "${OUTDir}/EFI/CLOVER/" || copyErr
+  local driverItems=(
+    "Clover/CloverV2/EFI/CLOVER/drivers/off/UEFI/MemoryFix/OpenRuntime.efi"
+    "Clover/AppleSupportPkg_209/Drivers/AppleGenericInput.efi"
+    "Clover/AppleSupportPkg_209/Drivers/AppleUiSupport.efi"
+    "Clover/AppleSupportPkg_216/Drivers/ApfsDriverLoader.efi"
+  )
+  for driverItem in "${driverItems[@]}"; do
+    cp -R "${driverItem}" "${OUTDir}/EFI/CLOVER/drivers/UEFI/" || copyErr
+  done
+}
+
+# Extract files from OpenCore
+function ExtractOC() {
+  echo "${green}[${reset}${blue}${bold} Extracting OpenCore ${reset}${green}]${reset}"
+  echo
+  mkdir -p "${OUTDir_OC}/EFI/OC/Tools" || exit 1
+  unzip -d "OpenCore" "OpenCore/*.zip" >/dev/null 2>&1
+  cp -R "OpenCore/X64/EFI/BOOT" "${OUTDir_OC}/EFI/" || copyErr
+  cp -R "OpenCore/X64/EFI/OC/OpenCore.efi" "${OUTDir_OC}/EFI/OC/" || copyErr
+  cp -R "OpenCore/X64/EFI/OC/Bootstrap" "${OUTDir_OC}/EFI/OC/" || copyErr
+  local driverItems=(
+    "OpenCore/X64/EFI/OC/Drivers/AudioDxe.efi"
+    "OpenCore/X64/EFI/OC/Drivers/OpenCanopy.efi"
+    "OpenCore/X64/EFI/OC/Drivers/OpenRuntime.efi"
+  )
+  local toolItems=(
+    "OpenCore/X64/EFI/OC/Tools/OpenShell.efi"
+  )
+  for driverItem in "${driverItems[@]}"; do
+    cp -R "${driverItem}" "${OUTDir_OC}/EFI/OC/Drivers/" || copyErr
+  done
+  for toolItem in "${toolItems[@]}"; do
+    cp -R "${toolItem}" "${OUTDir_OC}/EFI/OC/Tools/" || copyErr
+  done
+}
+
+# Generate Release Note
+function GenNote() {
+  local printVersion
+  local lineStart
+  local lineEnd
+  local changelogPath
+
+  changelogPath="${REPO_NAME_BRANCH}/Changelog.md"
+  if [[ ${REMOTE} == False ]]; then
+    changelogPath="${changelogPath/${REPO_NAME_BRANCH}/..}"
+  fi
+
+  echo "${green}[${reset}${blue}${bold} Generating Release Notes ${reset}${green}]${reset}"
+  echo
+  printVersion=$(echo "${VERSION}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
+  printf "## XiaoMi NoteBook Pro EFI %s\n" "${printVersion}" >> ReleaseNotes.md
+
+  lineStart=$(grep -n "XiaoMi NoteBook Pro EFI v" ${changelogPath}) && lineStart=${lineStart%%:*} && lineStart=$((lineStart+1))
+  lineEnd=$(grep -n -m2 "XiaoMi NoteBook Pro EFI v" ${changelogPath} | tail -n1)
+  lineEnd=${lineEnd%%:*} && lineEnd=$((lineEnd-3))
+  sed -n "${lineStart},${lineEnd}p" ${changelogPath} >> ReleaseNotes.md
+  for RNotedir in "${OUTDir}" "${OUTDir_OC}"; do
+    cp -R "ReleaseNotes.md" "${RNotedir}" || copyErr
+  done
+}
+
+# Exclude Trash
+function CTrash() {
+  echo "${green}[${reset}${blue}${bold} Cleaning Trash Files ${reset}${green}]${reset}"
+  echo
+  if [[ ${CLEAN_UP} == True ]]; then
+    find . -maxdepth 1 ! -path "./${OUTDir}" ! -path "./${OUTDir_OC}" -exec rm -rf {} + >/dev/null 2>&1
+  fi
+}
+
+# Enjoy
+function Enjoy() {
+  for BUILDdir in "${OUTDir}" "${OUTDir_OC}"; do
+    zip -qr "${BUILDdir}.zip" "${BUILDdir}"
+  done
+  echo "${red}[${reset}${blue}${bold} Done! Enjoy! ${reset}${red}]${reset}"
+  echo
+  open ./
 }
 
 function main() {
@@ -659,9 +876,11 @@ function main() {
 
   # Installation
   Install
-  GenNote
   ExtractClover
   ExtractOC
+
+  # Generate Release Notes
+  GenNote
 
   # Clean up
   CTrash

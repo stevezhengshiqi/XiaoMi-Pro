@@ -1,16 +1,199 @@
 # XiaoMi NoteBook Pro EFI 更新日志
 
-[English](Changelog.md) | 中文
+[English](Changelog.md) | **中文**
 
-## [XiaoMi NoteBook Pro EFI v1.4.1 beta 1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.1-beta1)
-## X-XX-2020
+## XiaoMi NoteBook Pro EFI v1.4.8
+## 12-X-2020
 
 ### 更新
+  * 更新 `OpenCore` v0.6.4
+  * 更新 `Clover` r5127 来支持 macOS11.0.1
+  * 更新 `Lilu` v1.5.0
+  * 更新 `VirtualSMC` v1.1.9
+  * 更新 `AppleALC` v1.5.5
+  * 更新 `VoodooI2C` v2.5.3
+  * 更新 `AirportItlwm` v1.2.0（up to []()）
+  * 更新 `SSDT-PNLF`
+  * 更新 `SSDT-RMNE`
+
+### 变更
+  * 修改 `csr-active-config` 为 `30000000`
+
+### Clover
+  * Clover: 更新 config 来支持 `Clover` r5127
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.4
+  * OC: 启用 macOS11.0+ 的 `IntelBluetoothInjector.kext`
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.7](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.7)
+## 11-3-2020
+
+### 移除
+  * 移除 `AAPL,slot-name` 来支持 macOS11 上的 HEVC
+
+### Clover
+  * Clover: 新增 `AirportItlwm` 来支持原生英特尔 Wi-Fi
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.6](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.6)
+## 11-2-2020
+
+### 更新
+  * 更新 `OpenCore` v0.6.3
+  * 更新 `Lilu` v1.4.9
+  * 更新 `VirtualSMC` v1.1.8
+  * 更新 `AppleALC` v1.5.4
+  * 更新 `WhateverGreen` v1.4.4
+  * 更新 `HibernationFixup` v1.3.7
+  * 更新 `VoodooPS2` v2.1.8
+  * 更新 `VoodooI2C` v2.5.2
+
+### Clover
+  * Clover: 禁用 `RtcHibernateAware`，如果想提升休眠请手动打开
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.3
+  * OC: 新增 `AirportItlwm` 来支持原生英特尔 Wi-Fi
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.5](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.5)
+## 10-5-2020
+
+### 更新
+  * 更新 `OpenCore` v0.6.2
+  * 更新 `Lilu` v1.4.8
+  * 更新 `VirtualSMC` v1.1.7
+  * 更新 `AppleALC` v1.5.3
+  * 更新 `WhateverGreen` v1.4.3
+  * 更新 `HibernationFixup` v1.3.6
+  * 更新 `VoodooInput` v1.0.8
+  * 更新 `VoodooPS2` v2.1.7
+  * 更新 `VoodooI2C` v2.5.1
+
+### 移除
+  * 移除 `-shikioff` 因为需要 `Shiki` 来播放 DRM
+
+### Clover
+  * Clover: 新增回 `RtcHibernateAware` 来提升休眠
+  
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.2
+  * OC: 禁用 macOS11.0+ 的 `IntelBluetoothInjector.kext` 来恢复启动速度
+  * OC: 新增回 `Disable RTC wake scheduling` 补丁
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.4](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.4)
+## 9-8-2020
+
+### 更新
+  * 更新 `Clover` r5122
+  * 更新 `OpenCore` v0.6.1
+  * 更新 `Lilu` v1.4.7
+  * 更新 `VirtualSMC` v1.1.6
+  * 更新 `AppleALC` v1.5.2
+  * 更新 `WhateverGreen` v1.4.2
+  * 更新 `HibernationFixup` v1.3.5
+  * 更新 `VoodooI2C` v2.4.4（更新至 [VoodooI2C/VoodooI2C@3527ec3](https://github.com/VoodooI2C/VoodooI2C/commit/3527ec36d2f5860253544f39bec6f0998a7044e2)）
+  * 更新 `SSDT-LGPAGTX`
+
+### 新增
+  * 新增 `-shikioff` 引导参数来禁用 `Shiki`
+
+### 移除
+  * 移除 `NVMeFix` 因为它不兼容部分 NVMe SSD
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.1
+  * OC: 关闭 `Disable RTC wake scheduling` 补丁因为它可能导致 Intel Wi-Fi 唤醒后不工作
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.3](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.3)
+## 8-3-2020
+
+### 更新
+  * 更新 `Clover` r5120
+  * 更新 `OpenCore` v0.6.0
+  * 更新 `Lilu` v1.4.6
+  * 更新 `VirtualSMC` v1.1.5 来支持 macOS11.0 beta 3 (20A5323l)
+  * 更新 `AppleALC` v1.5.1
+  * 更新 `WhateverGreen` v1.4.1
+  * 更新 `VoodooPS2` v2.1.6
+  * 更新 `VoodooInput` v1.0.7
+  * 更新 `NVMeFix` v1.0.3
+  * 更新 `HibernationFixup` v1.3.4
+  * 更新 `IntelBluetoothFirmware` v1.1.2
+  * 更新 `SSDT-LGPA` 来修复睡眠唤醒后意外的键位触发
+
+### Clover
+  * Clover: 更新 config 来支持 `Clover` r5120
+  * Clover: 移除 `SetIntelBacklight` 和 `SetIntelMaxBacklight` 因为我们使用 `SSDT-PNLF`
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.0
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.2](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.2)
+## 7-16-2020
+
+### 更新
+  * 更新 `OpenCore` v0.6.0（更新至 [acidanthera/OpenCorePkg@20e60b0](https://github.com/acidanthera/OpenCorePkg/commit/20e60b0cbb273ea91a567440f0b7e230ecae3ec8)）
+  * 更新 `Lilu` v1.4.6（更新至 [acidanthera/Lilu@28122d0](https://github.com/acidanthera/Lilu/commit/28122d0084dc5fe1b486bd52945160cf5be64d49)）
+  * 更新 `VirtualSMC` v1.1.5（更新至 [acidanthera/VirtualSMC@fab53dc](https://github.com/acidanthera/VirtualSMC/commit/fab53dc600eef3b559c9a99b6cfd598c5f24927e)）来在 macOS11 上显示电量百分比
+  * 更新 `AppleALC` v1.5.1（更新至 [acidanthera/AppleALC@f07c1f8](https://github.com/acidanthera/AppleALC/commit/f07c1f8c65270f58a50f96bac2588710d0ff7683)）
+  * 更新 `WhateverGreen` v1.4.1（更新至 [acidanthera/WhateverGreen@b97c692](https://github.com/acidanthera/WhateverGreen/commit/b97c692aee9672786a181423dd476a05782ba7e9)）
+  * 更新 `VoodooPS2` v2.1.6（更新至 [acidanthera/VoodooPS2@60a4566](https://github.com/acidanthera/VoodooPS2/commit/60a4566c237f9c39bf38122ec8c0910a388dbe9d)）
+
+### Clover
+  * Clover: 移除 `NoRomInfo` 键值
+
+### OC
+  * OC: 更新 config
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.1)
+## 7-12-2020
+
+### 更新
+  * 更新 `OpenCore` v0.6.0（更新至 [acidanthera/OpenCorePkg@eee51ba](https://github.com/acidanthera/OpenCorePkg/commit/eee51bae932b5a366351e994ea2a1909c46c3ebf)）来支持 macOS11.0 beta 1 (20A4299v)
+  * 更新 `Lilu` v1.4.6（更新至 [acidanthera/Lilu@8a81e92](https://github.com/acidanthera/Lilu/commit/8a81e92f5641f9eee333d348d39add4ecaef0b37)）
+  * 更新 `AppleALC` v1.5.1（更新至 [acidanthera/AppleALC@df23c40](https://github.com/acidanthera/AppleALC/commit/df23c409d832449867263d4a5eb32aaa570935f3)）
+  * 更新 `VirtualSMC` v1.1.5（更新至 [acidanthera/VirtualSMC@90b1f45](https://github.com/acidanthera/VirtualSMC/commit/90b1f45475c82566fe6533c03f4938594f17bb49)）
+  * 更新 `WhateverGreen` v1.4.1（更新至 [acidanthera/WhateverGreen@39e3b55](https://github.com/acidanthera/WhateverGreen/commit/39e3b557fb55dcb0e38e6ecd05d217c780ba8a2c)）
+  * 更新 `VoodooPS2` v2.1.6（更新至 [acidanthera/VoodooPS2@071850a](https://github.com/acidanthera/VoodooPS2/commit/071850a089de027dad3b1d372b3a2a53f5813016)）
+  * 更新 `VoodooInput` v1.0.7（更新至 [acidanthera/VoodooInput@46a01f9](https://github.com/acidanthera/VoodooInput/commit/46a01f90c4c81cc193b57d523156cc035321e8ea)）
+  * 更新 `VoodooI2C` v2.4.4（更新至 [VoodooI2C/VoodooI2C@451739c](https://github.com/VoodooI2C/VoodooI2C/commit/451739ce4a736fa8afb591f73ef45f7fec240960)）
+  * 更新 `NVMeFix` v1.0.3（更新至 [acidanthera/NVMeFix@48a0fda](https://github.com/acidanthera/NVMeFix/commit/48a0fda97650fd6a7563d65e479421524685bcee)）
+  * 更新 `HibernationFixup` v1.3.4（更新至 [acidanthera/HibernationFixup@bb49d28](https://github.com/acidanthera/HibernationFixup/commit/bb49d28c7dd5d379f8729121c92bd9ad98509245)）
+  * 更新 `IntelBluetoothFirmware` v1.1.1
+  * 更新 `SSDT-LGPA` 和 `SSDT-PS2K` 来支持原生截图键，镜像键，和调度中心键；映射 PrtScn 键到 F11，Insert 键到 F12，和双击 FN 键到 F13
+    * 镜像键和调度中心键仅支持 MX150 BIOS 版本 >= 0A07
+
+### 变更
+  * 关闭 `FBEnableDynamicCDCLK` 因为它会造成休眠后黑屏；想开启大于 1424x802 HiDPI 分辨率的话请把 `framebuffer-flags` 设置为 `CwfjAA==`
+
+### Clover
+  * Clover: 新增 `OcQuirks.efi`，`OpenRuntime.efi` 和 `OcQuirks.plist` 来替代 `AptioMemoryFix.efi`
+  * Clover: 新增 `NoRomInfo` 来隐藏 Apple ROM 信息
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.0
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.1 beta 1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.1-beta1)
+## 6-14-2020
+
+### 更新
+  * 更新 `Clover` r5119
   * 更新 `VoodooI2C` v2.4.3
 
 ### Clover
   * 更新 `setpowerstate_panic=0` 内核补丁
   * 移除 `AudioDxe.efi`
+
+### OC
+  * 更新 config
 
 
 ## [XiaoMi NoteBook Pro EFI v1.4.0](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.0)
@@ -423,7 +606,7 @@
   * 新增 `VoodooPS2Controller` 来代替 `ApplePS2SmartTouchPad`
 
 ### 移除
-  * 移除多余启动参数 `igfxfw=1` 和 `-disablegfxfirmware`
+  * 移除多余引导参数 `igfxfw=1` 和 `-disablegfxfirmware`
 
 ### 变更
   * 修改 `SSDT-PCIList.aml`，让 `系统报告.app` 显示更多PCI设备
@@ -441,7 +624,7 @@
   * 新增 `SSDT-EC.aml` 和 `SSDT-SMBUS.aml` 来加载 AppleBusPowerController 和 AppleSMBusPCI
 
 ### 移除
-  * 移除 config 里的一些无用重命名和错误启动参数 `shikigva=1`
+  * 移除 config 里的一些无用重命名和错误引导参数 `shikigva=1`
   * 移除 `SSDT-ADBG.aml`，它是个无用的方法覆写
   * 移除 `SSDT-IMEI.aml` 来避免开机日志里出现的错误信息（显卡id能被`IntelGraphicsFixup`自动注入）
 
@@ -480,7 +663,7 @@
 ### 新增
   * 新增 `AppleBacklightInjector`，开启更多档位的亮度调节
   * 新增 `CPUFriend` 和`CPUFriendDataProvider`，开启原生 XCPM 和 HWP 电源管理方案
-  * 新增启动参数 `shikigva=1`，`igfxrst=1` 和 `igfxfw=1` 增强核显性能，并用新的方法修正启动第二阶段的八个苹果
+  * 新增引导参数 `shikigva=1`，`igfxrst=1` 和 `igfxfw=1` 增强核显性能，并用新的方法修正启动第二阶段的八个苹果
   * 新增 `SSDT-LGPA.aml`，支持原生亮度快捷键
 
 

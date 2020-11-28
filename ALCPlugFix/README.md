@@ -1,6 +1,6 @@
 # ALC Plug Fix
 
-English | [中文](README_CN.md)
+**English** | [中文](README_CN.md)
 
 ## Introduction
 
@@ -13,7 +13,7 @@ English | [中文](README_CN.md)
 
 - Run the following command in Terminal:
 
-```bash
+```shell
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/daliansky/XiaoMi-Pro-Hackintosh/master/ALCPlugFix/one-key-alcplugfix.sh)"
 ```
 

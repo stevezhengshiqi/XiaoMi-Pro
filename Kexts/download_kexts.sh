@@ -8,6 +8,11 @@
 # Reference:
 # https://github.com/williambj1/Hackintosh-EFI-Asus-Zephyrus-S-GX531/blob/master/Makefile.sh by @williambj1
 
+# Vars
+ACDT="Acidanthera"
+OIW="OpenIntelWireless"
+RETRY_MAX=5
+
 # Colors
 black=$(tput setaf 0)
 red=$(tput setaf 1)
@@ -38,26 +43,42 @@ function copyErr() {
   exit 1
 }
 
+function init() {
+  if [[ ${OSTYPE} != darwin* ]]; then
+    echo "This script can only run in macOS, aborting"
+    exit 1
+  fi
+
+  if [[ -d ${WSDir} ]]; then
+    rm -rf "${WSDir}"
+  fi
+  mkdir "${WSDir}" || exit 1
+  cd "${WSDir}" || exit 1
+}
+
 # Workaround for Release Binaries that don't include "RELEASE" in their file names (head or grep)
 function H_or_G() {
   if [[ "$1" == "VoodooI2C" ]]; then
-    HG="head -n 1"
-  elif [[ "$1" == "CloverBootloader" ]]; then
-    HG="grep -m 1 CloverV2"
+    HGs=( "head -n 1" )
   elif [[ "$1" == "IntelBluetoothFirmware" ]]; then
-    HG="grep -m 1 IntelBluetooth"
-  elif [[ "$1" == "OpenCore-Factory" ]]; then
-    HG="grep -m 2 RELEASE | tail +2"
+    HGs=( "grep -m 1 IntelBluetooth" )
+  elif [[ "$1" == "itlwm" ]]; then
+    HGs=( "grep -m 1 AirportItlwm-Big_Sur"
+          "grep -m 1 AirportItlwm-Catalina"
+          "grep -m 1 AirportItlwm-High_Sierra"
+          "grep -m 1 AirportItlwm-Mojave"
+        )
   else
-    HG="grep -m 1 RELEASE"
+    HGs=( "grep -m 1 RELEASE" )
   fi
 }
 
 # Download GitHub Release
 function DGR() {
-  H_or_G "$2"
   local rawURL
-  local URL
+  local URLs=()
+
+  H_or_G "$2"
 
   if [[ -n ${3+x} ]]; then
     if [[ "$3" == "PreRelease" ]]; then
@@ -65,12 +86,8 @@ function DGR() {
     elif [[ "$3" == "NULL" ]]; then
       tag="/latest"
     else
-      if [[ -n ${GITHUB_ACTIONS+x} || $GH_API == False ]]; then
-        tag="/tag/2.0.9"
-      else
-        # only release_id is supported
-        tag="/$3"
-      fi
+      # only release_id is supported
+      tag="/$3"
     fi
   else
     tag="/latest"
@@ -78,22 +95,27 @@ function DGR() {
 
   if [[ -n ${GITHUB_ACTIONS+x} || ${GH_API} == False ]]; then
     rawURL="https://github.com/$1/$2/releases$tag"
-    URL="https://github.com$(local one=${"$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" )"#*href=\"} && local two=${one%\"\ rel*} && echo ${two})"
+    for HG in "${HGs[@]}"; do
+      URLs+=( "https://github.com$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" | sed 's/^[^"]*"\([^"]*\)".*/\1/')" )
+    done
   else
     rawURL="https://api.github.com/repos/$1/$2/releases$tag"
-    URL="$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')"
+    for HG in "${HGs[@]}"; do
+      URLs+=( "$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')" )
+    done
   fi
 
-  if [[ -z ${URL} || ${URL} == "https://github.com" ]]; then
-    networkErr "$2"
-  fi
-
-  echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
-  echo "${cyan}"
-  cd ./"$4" || exit 1
-  curl -# -L -O "${URL}" || networkErr "$2"
-  cd - >/dev/null 2>&1 || exit 1
-  echo "${reset}"
+  for URL in "${URLs[@]}"; do
+    if [[ -z ${URL} || ${URL} == "https://github.com" ]]; then
+      networkErr "$2"
+    fi
+    echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
+    echo "${cyan}"
+    cd ./"$4" || exit 1
+    curl -# -L -O "${URL}" || networkErr "$2"
+    cd - >/dev/null 2>&1 || exit 1
+    echo "${reset}"
+  done
 }
 
 # Download GitHub Source Code
@@ -112,7 +134,8 @@ function DBR() {
   local Count=0
   local rawURL="https://api.bitbucket.org/2.0/repositories/$1/$2/downloads/"
   local URL
-  while  [ ${Count} -lt 3 ];
+
+  while [ ${Count} -lt ${RETRY_MAX} ];
   do
     URL="$(curl --silent "${rawURL}" | json_pp | grep 'href' | head -n 1 | tr -d '"' | tr -d ' ' | sed -e 's/href://')"
     if [ "${URL:(-4)}" == ".zip" ]; then
@@ -128,23 +151,47 @@ function DBR() {
     fi
   done
 
-  if [ ${Count} -gt 2 ]; then
-    # if 3 times is over and still fail to download, exit
+  if [ ${Count} -ge ${RETRY_MAX} ]; then
+    # if ${RETRY_MAX} times are over and still fail to download, exit
     networkErr "$2"
   fi
 }
 
-function init() {
-  if [[ ${OSTYPE} != darwin* ]]; then
-    echo "This script can only run in macOS, aborting"
-    exit 1
-  fi
+function DL() {
+  local rmKexts=(
+    os-x-eapd-codec-commander
+    os-x-null-ethernet
+  )
 
-  if [[ -d ${WSDir} ]]; then
-    rm -rf "${WSDir}"
-  fi
-  mkdir "${WSDir}" || exit 1
-  cd "${WSDir}" || exit 1
+  local acdtKexts=(
+    VirtualSMC
+    WhateverGreen
+    AppleALC
+    HibernationFixup
+    VoodooPS2
+    Lilu
+  )
+
+  local oiwKexts=(
+    IntelBluetoothFirmware
+    itlwm
+  )
+
+  for rmKext in "${rmKexts[@]}"; do
+    DBR Rehabman "${rmKext}"
+  done
+
+  for acdtKext in "${acdtKexts[@]}"; do
+    DGR ${ACDT} "${acdtKext}"
+  done
+
+  for oiwKext in "${oiwKexts[@]}"; do
+    DGR ${OIW} "${oiwKext}" PreRelease
+  done
+
+  DGR VoodooI2C VoodooI2C
+
+  DGS RehabMan hack-tools
 }
 
 # Unpack
@@ -152,6 +199,29 @@ function Unpack() {
   echo "${green}[${reset}${yellow}${bold} Unpacking ${reset}${green}]${reset}"
   echo
   unzip -qq "*.zip" >/dev/null 2>&1
+}
+
+# Patch
+function Patch() {
+  local unusedItems=(
+    "IntelBluetoothInjector.kext/Contents/_CodeSignature"
+    "IntelBluetoothInjector.kext/Contents/MacOS"
+    "Release/CodecCommander.kext/Contents/Resources"
+    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext.dSYM"
+    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext/Contents/_CodeSignature"
+    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext"
+    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext"
+    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext"
+  )
+  for unusedItem in "${unusedItems[@]}"; do
+    rm -rf "${unusedItem}" >/dev/null 2>&1
+  done
+
+  # Rename AirportItlwm.kexts to distinguish different versions
+  mv "Big Sur/AirportItlwm.kext" "Big Sur/AirportItlwm_Big_Sur.kext" || exit 1
+  mv "Catalina/AirportItlwm.kext" "Catalina/AirportItlwm_Catalina.kext" || exit 1
+  mv "High Sierra/AirportItlwm.kext" "High Sierra/AirportItlwm_High_Sierra.kext" || exit 1
+  mv "Mojave/AirportItlwm.kext" "Mojave/AirportItlwm_Mojave.kext" || exit 1
 }
 
 # Install
@@ -164,7 +234,6 @@ function Install() {
     "IntelBluetoothFirmware.kext"
     "IntelBluetoothInjector.kext"
     "Lilu.kext"
-    "NVMeFix.kext"
     "VoodooI2C.kext"
     "VoodooI2CHID.kext"
     "VoodooPS2Controller.kext"
@@ -177,57 +246,15 @@ function Install() {
     "Kexts/VirtualSMC.kext"
     "Release/CodecCommander.kext"
     "Release/NullEthernet.kext"
+    "Big Sur/AirportItlwm_Big_Sur.kext"
+    "Catalina/AirportItlwm_Catalina.kext"
+    "High Sierra/AirportItlwm_High_Sierra.kext"
+    "Mojave/AirportItlwm_Mojave.kext"
   )
 
   for kextItem in "${kextItems[@]}"; do
     cp -R "${kextItem}" "../" || copyErr
   done
-}
-
-# Patch
-function Patch() {
-  local unusedItems=(
-    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext.dSYM"
-    "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext/Contents/_CodeSignature"
-    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext"
-    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext"
-    "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext"
-  )
-  for unusedItem in "${unusedItems[@]}"; do
-    rm -rf "${unusedItem}"
-  done
-}
-
-function DL() {
-  ACDT="Acidanthera"
-
-  local rmKexts=(
-    os-x-eapd-codec-commander
-    os-x-null-ethernet
-  )
-
-  local acdtKexts=(
-    Lilu
-    VirtualSMC
-    WhateverGreen
-    AppleALC
-    HibernationFixup
-    NVMeFix
-    VoodooPS2
-  )
-
-  for rmKext in "${rmKexts[@]}"; do
-    DBR Rehabman "${rmKext}"
-  done
-
-  for acdtKext in "${acdtKexts[@]}"; do
-    DGR ${ACDT} "${acdtKext}"
-  done
-
-  DGR VoodooI2C VoodooI2C
-  DGR zxystd IntelBluetoothFirmware
-
-  DGS RehabMan hack-tools
 }
 
 # Exclude Trash

@@ -12,7 +12,7 @@ function interface() {
     echo '|  __/  | | | |_| | | (_| | |  _|   | |  >  <  '
     echo '|_|     |_|  \__,_|  \__, | |_|     |_| /_/\_\ '
     echo '                      |___/                    '
-    echo 'Support XiaoMi-Pro(ALC298, layout-id 99)'
+    echo 'Support XiaoMi-Pro(ALC298, layout-id 30/99)'
     echo '==============================================='
 }
 
@@ -21,7 +21,7 @@ function choice() {
     echo "(1) Enable ALCPlugFix"
     echo "(2) Disable ALCPlugFix"
     echo "(3) Exit"
-    read -p "Which option you want to choose? (1/2/3):" alc_option
+    read -rp "Which option you want to choose? (1/2/3):" alc_option
     echo
 }
 
@@ -32,10 +32,10 @@ function networkWarn(){
     exit 1
 }
 
-# Download from https://github.com/Menchen/ALCPlugFix/tree/master/build/Release
+# Download from https://github.com/daliansky/XiaoMi-Pro/master/ALCPlugFix and https://github.com/Menchen/ALCPlugFix/tree/master/build/Release
 function download(){
     mkdir -p one-key-alcplugfix
-    cd one-key-alcplugfix
+    cd one-key-alcplugfix || exit 1
     echo "Downloading audio fix patch..."
     curl -fsSL https://raw.githubusercontent.com/Menchen/ALCPlugFix/master/build/Release/ALCPlugFix -O || networkWarn
     curl -fsSL https://raw.githubusercontent.com/Menchen/ALCPlugFix/master/alc_fix/good.win.ALCPlugFix.plist -O || networkWarn
@@ -50,7 +50,7 @@ function copy() {
 	if [ ! -d "/usr/local/bin" ]; then
 		echo "'/usr/local/bin' not found, creating one instead..."
 		sudo mkdir -p -m 775 /usr/local/bin
-		sudo chown $USER:admin /usr/local/bin
+		sudo chown "$USER":admin /usr/local/bin
 	fi
     sudo cp "./ALCPlugFix" /usr/local/bin/
     sudo cp "./hda-verb" /usr/local/bin/
@@ -63,9 +63,9 @@ function copy() {
 function fixpermission() {
     echo "Fixing permission..."
     sudo chmod 755 /usr/local/bin/ALCPlugFix
-    sudo chown $USER:admin /usr/local/bin/ALCPlugFix
+    sudo chown "$USER":admin /usr/local/bin/ALCPlugFix
     sudo chmod 755 /usr/local/bin/hda-verb
-    sudo chown $USER:admin /usr/local/bin/hda-verb
+    sudo chown "$USER":admin /usr/local/bin/hda-verb
     sudo chmod 644 /Library/LaunchDaemons/good.win.ALCPlugFix.plist
     sudo chown root:wheel /Library/LaunchDaemons/good.win.ALCPlugFix.plist
     echo "Fix complete"

@@ -33,6 +33,19 @@ function compileErr() {
   exit 1
 }
 
+function init() {
+  if [[ ${OSTYPE} != darwin* ]]; then
+    echo "This script can only run in macOS, aborting"
+    exit 1
+  fi
+
+  cd "$(dirname "$0")" || exit 1
+
+  if [[ -f "iasl-stable" ]]; then
+    rm -rf "iasl-stable"
+  fi
+}
+
 # Download iasl from Acidanthera's MaciASL repository
 function download() {
   local URL="https://raw.githubusercontent.com/$1/$2/master/$3"
@@ -42,24 +55,11 @@ function download() {
   echo "${reset}"
 }
 
-function init() {
-  if [[ ${OSTYPE} != darwin* ]]; then
-    echo "This script can only run in macOS, aborting"
-    exit 1
-  fi
-
-  cd "$(dirname "$0")" || exit 1
-
-  if [[ -d "iasl-stable" ]]; then
-    rm -rf "iasl-stable"
-  fi
-}
-
 function compile() {
   chmod +x iasl*
   echo "${green}[${reset}${magenta}${bold} Compiling ACPI Files ${reset}${green}]${reset}"
   echo
-  find . -type f -name "*.dsl" | xargs -I{} ./iasl* -vs -va {} >/dev/null 2>&1 || compileErr
+  find . -type f -name "*.dsl" -print0 | xargs -0 -I{} ./iasl* -vs -va {} >/dev/null 2>&1 || compileErr
 }
 
 function enjoy() {
