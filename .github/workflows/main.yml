@@ -14,10 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: |
+      - name: Initialize Variables
+        run: |
           CUR_TAG="${GITHUB_REF##*/}"
           DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
           EFI_VERSION=$(echo "${CUR_TAG}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
+
+      - name: Run makefile
+        run: |
           ./makefile.sh --NO_GH_API --VERSION="${CUR_TAG}" --PRE_RELEASE=Kext --PRE_RELEASE=OC
 
       - name: Upload to Release
@@ -60,7 +64,7 @@ jobs:
 
       - name: Run iasl
         run: |
-          find . -type f -name "*.dsl" -print0 | xargs -0 -I{} ./iasl* -vs -va {} || exit 1
+          find . -type f -name "*.dsl" -print0 | xargs -0 -I{} ./ACPI/iasl* -vs -va {} || exit 1
 
   analyze-oc-config:
     name: Analyze OpenCore Config
@@ -78,8 +82,7 @@ jobs:
           curl -# -L -O "${URL}" || exit 1
           unzip -qq "*.zip" >/dev/null 2>&1 || exit 1
           chmod +x Utilities/ocvalidate/ocvalidate || exit 1
-          RESULT=$(Utilities/ocvalidate/ocvalidate ../OC/config.plist) && echo "${RESULT}" && if [ "$(echo "${RESULT}" | wc -l)" -gt "1" ]; then exit 1; fi
 
       - name: Run ocvalidate
         run: |
-          RESULT=$(Utilities/ocvalidate/ocvalidate ../OC/config.plist) && echo "${RESULT}" && if [ "$(echo "${RESULT}" | wc -l)" -gt "1" ]; then exit 1;
+          RESULT=$(./OpenCore/Utilities/ocvalidate/ocvalidate ./OC/config.plist) && echo "${RESULT}" && if [ "$(echo "${RESULT}" | wc -l)" -gt "1" ]; then exit 1; fi
