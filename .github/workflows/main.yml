@@ -13,13 +13,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '12.2'
 
       - name: Initialize Variables
         run: |
           echo "CUR_TAG=\"${GITHUB_REF##*/}\"" >> $GITHUB_ENV
           echo "EFI_VERSION=$(echo \"${CUR_TAG}\" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')" >> $GITHUB_ENV
-          echo "DEVELOPER_DIR=\"/Applications/Xcode_12.2.app/Contents/Developer\"" >> $GITHUB_ENV
-          export DEVELOPER_DIR="/Applications/Xcode_12.2.app/Contents/Developer"
 
       - name: Run makefile
         run: |
