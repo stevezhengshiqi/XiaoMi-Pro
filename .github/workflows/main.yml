@@ -20,20 +20,18 @@ jobs:
 
       - name: Initialize Variables
         run: |
-          git fetch --prune --unshallow --tags
           GIT_SHA="$(git rev-parse --short HEAD)"
-          echo "CUR_TAG=beta-$GIT_SHA" >> $GITHUB_ENV
-          echo "DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer" >> $GITHUB_ENV
-          export DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer
+          echo "CUR_TAG=beta-$GIT_SHA" >> "$GITHUB_ENV"
+          echo "DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer" >> "$GITHUB_ENV"
 
       - name: Initialize Tag
         if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         run: |
-          echo "CUR_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          echo "CUR_TAG=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
 
       - name: Run makefile
         run: |
-          ./makefile.sh --NO_GH_API --VERSION=${CUR_TAG} --PRE_RELEASE=Kext --PRE_RELEASE=OC
+          ./makefile.sh --NO_GH_API --VERSION=${CUR_TAG} --PRE_RELEASE=Kext --PRE_RELEASE=OC --MODEL=KBLCML
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v2
@@ -46,7 +44,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: build/*.zip
-          bodyFile: build/XiaoMi_Pro-${{ env.CUR_TAG }}/ReleaseNotes.md
+          bodyFile: build/XiaoMi_Pro-KBL-OC-${{ env.CUR_TAG }}/ReleaseNotes.md
           name: XiaoMi NoteBook Pro EFI ${{ env.CUR_TAG }}
           prerelease: false
           tag: ${{ env.CUR_TAG }}
@@ -75,13 +73,12 @@ jobs:
 
       - name: Install Dependency
         run: |
-          cd "ACPI" || exit 1
           curl -# -L -O https://raw.githubusercontent.com/Acidanthera/MaciASL/master/Dist/iasl-stable || exit 1
           chmod +x iasl* || exit 1
 
       - name: Run iasl
         run: |
-          find . -type f -name "*.dsl" -print0 | xargs -0 -I{} ./ACPI/iasl* -vs -va {} || exit 1
+          find . -name '*.dsl' -exec sh -c './iasl* -vw 2095 -vw 2173 -vs -p "${1%/*}/../${1##*/}" "${1%}" && echo || exit 1' sh {} \;
 
   analyze-oc-config:
     name: Analyze OpenCore Config
@@ -91,15 +88,17 @@ jobs:
 
       - name: Install Dependency
         run: |
-          rawURL="https://github.com/williambj1/OpenCore-Factory/releases"
-          HG="grep -m 1 RELEASE"
+          mkdir "OpenCore" && cd "OpenCore" || exit 1
+          HG="grep -A 2 OpenCorePkg | grep -m 1 RELEASE"
+          rawURL="https://github.com/dortania/build-repo/tags"
+          rawURL="https://github.com$(curl -L --silent "${rawURL}" | grep -m 1 'OpenCorePkg' | tr -d '"' | tr -d ' ' | tr -d '>' | sed -e 's/<ahref=//')"
           URL="https://github.com$(curl -L --silent "${rawURL}" | grep '/download/' | eval "${HG}" | sed 's/^[^"]*"\([^"]*\)".*/\1/')"
           echo "Downloading ${URL##*\/}"
-          mkdir "OpenCore" && cd "OpenCore" || exit 1
           curl -# -L -O "${URL}" || exit 1
           unzip -qq "*.zip" >/dev/null 2>&1 || exit 1
           chmod +x Utilities/ocvalidate/ocvalidate || exit 1
 
       - name: Run ocvalidate
         run: |
-          RESULT=$(./OpenCore/Utilities/ocvalidate/ocvalidate ./OC/config.plist) && echo "${RESULT}" && if [ "$(echo "${RESULT}" | wc -l)" -gt "1" ]; then exit 1; fi
+          RESULT_KBL=$(./OpenCore/Utilities/ocvalidate/ocvalidate ./OC/config_kbl.plist) && echo "${RESULT_KBL}" && if [ "$(echo "${RESULT_KBL}" | wc -l)" -gt "1" ]; then exit 1; fi
+          RESULT_CML=$(./OpenCore/Utilities/ocvalidate/ocvalidate ./OC/config_cml.plist) && echo "${RESULT_CML}" && if [ "$(echo "${RESULT_CML}" | wc -l)" -gt "1" ]; then exit 1; fi
