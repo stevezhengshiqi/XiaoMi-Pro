@@ -2,8 +2,65 @@
 
 **English** | [中文](Changelog_CN.md)
 
-## XiaoMi NoteBook Pro EFI v1.4.8
-## 12-X-2020
+## [XiaoMi NoteBook Pro EFI v1.5.2](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.5.2)
+## 2-X-2021
+
+### Update
+  - Update `OpenCore` v0.6.6
+  - Update `Clover` r5129
+  - Update `Lilu` v1.5.1
+  - Update `AppleALC` v1.5.7
+  - Update `WhateverGreen` v1.4.7
+  - Update `VirtualSMC` v1.2.0
+  - Update `VoodooPS2` v2.2.1
+  - Update `AirportItlwm` v1.3.0 (up to []())
+
+### Add
+  - Add back `force-online` property to fix HDMI on Big Sur
+  - CML: Add `AAPL00,override-no-connect` property to inject EDID
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.6
+
+
+## [XiaoMi NoteBook Pro EFI v1.5.1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.5.1)
+## 1-13-2021
+
+### Remove
+  - Remove `force-online*` properties to fix HDMI
+
+### OC
+  - OC: Disable loading `AudioDxe.efi` and `ExFatDxe.efi` because they slow down the boot speed dramatically
+
+
+## [XiaoMi NoteBook Pro EFI v1.5.0](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.5.0)
+## 1-12-2021
+
+### Update
+  - Update `OpenCore` v0.6.5
+  - Update `Clover` r5128
+  - Update `WhateverGreen` v1.4.6
+  - Update `AppleALC` v1.5.6
+  - Update `HibernationFixup` v1.3.9
+  - Update `VoodooPS2` v2.2.0
+  - Update `VoodooI2C` v2.6.3
+  - Update `AirportItlwm` v1.2.0
+
+### Add
+  - Add `RestrictEvents` to replace `EFICheckDisabler`
+
+### Remove
+  - Remove `EFICheckDisabler`
+
+### Clover
+  - Clover: Update config to support `Clover` r5128
+
+### OC
+  - OC: Update config to support `OpenCore` v0.6.5
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.8](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.8)
+## 12-7-2020
 
 ### Update
   - Update `OpenCore` v0.6.4
@@ -11,9 +68,13 @@
   - Update `Lilu` v1.5.0
   - Update `VirtualSMC` v1.1.9
   - Update `AppleALC` v1.5.5
-  - Update `VoodooI2C` v2.5.3
-  - Update `AirportItlwm` v1.2.0 (up to []())
+  - Update `WhateverGreen` v1.4.5
+  - Update `HibernationFixup` v1.3.8
+  - Update `VoodooPS2` v2.1.9
+  - Update `VoodooI2C` v2.5.2 (up to [VoodooI2C/VoodooI2C@b5a11ce](https://github.com/VoodooI2C/VoodooI2C/commit/b5a11ce59d8b0e7e072c9efdf289d877898cb0c0))
+  - Update `AirportItlwm` v1.2.0 (up to [OpenIntelWireless/itlwm@c2f2c51](https://github.com/OpenIntelWireless/itlwm/commit/c2f2c51683b39d9327299238b3fa61343ee7177d))
   - Update `SSDT-PNLF`
+  - Update `SSDT-PS2K` as `VoodooPS2` v2.1.9 won't swap Command and Option in default
   - Update `SSDT-RMNE`
 
 ### Change
@@ -21,6 +82,7 @@
 
 ### Clover
   - Clover: Update config to support `Clover` r5127
+  - Clover: Add back Mouse properties to support mouse in BootPicker
 
 ### OC
   - OC: Update config to support `OpenCore` v0.6.4

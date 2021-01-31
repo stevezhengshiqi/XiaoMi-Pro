@@ -8,58 +8,6 @@
 # Reference:
 # https://github.com/williambj1/Hackintosh-EFI-Asus-Zephyrus-S-GX531/blob/master/Makefile.sh by @williambj1
 
-# Expected repository structure
-# .{REPO_NAME}
-# |____ACPI
-# | |____SSDT-ALS0.aml
-# | |____SSDT-DDGPU.aml
-# | |____SSDT-DMAC.aml
-# | |____SSDT-EC.aml
-# | |____SSDT-GPRW.aml
-# | |____SSDT-HPET.aml
-# | |____SSDT-LGPA.aml
-# | |____SSDT-LGPAGTX.aml
-# | |____SSDT-MCHC.aml
-# | |____SSDT-MEM2.aml
-# | |____SSDT-PMC.aml
-# | |____SSDT-PNLF.aml
-# | |____SSDT-PS2K.aml
-# | |____SSDT-RMNE.aml
-# | |____SSDT-TPD0.aml
-# | |____SSDT-USB-ALL.aml
-# | |____SSDT-USB-FingerBT.aml
-# | |____SSDT-USB-USBBT.aml
-# | |____SSDT-USB-WLAN_LTEBT.aml
-# | |____SSDT-USB.aml
-# | |____SSDT-XCPM.aml
-# |____ALCPlugFix
-# | |____ALCPlugFix
-# | | |____alc_fix
-# | | | |____good.win.ALCPlugFix.plist
-# | | | |____hda-verb
-# | | | |____install.sh
-# | | |____build
-# | | | |____Release
-# | | | | |____ALCPlugFix
-# | | |____README.MD
-# |____CLOVER
-# | |____themes
-# | |____config.plist
-# |____Docs
-# | |____Drive-Native-Intel-Wireless-Card.pdf
-# | |____FAQ.pdf
-# | |____README_CN_GTX.txt
-# | |____README_GTX.txt
-# | |____Set-DVMT-to-64mb.pdf
-# | |____Unlock-0xE2-MSR.pdf
-# | |____Work-Around-with-Bluetooth.pdf
-# |____OC
-# | |____config.plist
-# |____Changelog.md
-# |____LICENSE
-# |____README.md
-# |____README_CN.md
-# |____makefile.sh *
 
 # Vars
 ACDT="Acidanthera"
@@ -67,22 +15,26 @@ CLEAN_UP=True
 ERR_NO_EXIT=False
 GH_API=True
 LANGUAGE="EN"
+MODEL=""
+MODEL_LIST=( )
 NO_XCODE=False
 OIW="OpenIntelWireless"
 PRE_RELEASE=""
 REMOTE=True
 REPO_NAME="XiaoMi-Pro-Hackintosh"
-REPO_NAME_BRANCH="${REPO_NAME}-master"
+REPO_BRANCH="main"
+REPO_NAME_BRANCH="${REPO_NAME}-${REPO_BRANCH}"
 RETRY_MAX=5
 VERSION="local"
 
 # Env
 if [ "$(which xcodebuild)" = "" ] || [ "$(which git)" = "" ]; then
   NO_XCODE=True
-fi
-
-if [[ "${DEVELOPER_DIR}" = "" ]]; then
+elif [[ "${DEVELOPER_DIR}" = "" ]]; then
   DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+  xcodebuild -version
+else
+  xcodebuild -version
 fi
 
 # Args
@@ -113,12 +65,28 @@ while [[ $# -gt 0 ]]; do
     elif [[ "${key}" =~ "--PRE_RELEASE=" ]]; then
       PRE_RELEASE+="${key##*=}"
       shift
+    elif [[ "${key}" =~ "--MODEL=" ]]; then
+      MODEL+="${key##*=}"
+      shift
     else
       shift
     fi
     ;;
   esac
 done
+
+if [[ "${MODEL}" =~ "KBL" ]]; then
+  MODEL_LIST+=( "KBL" )
+fi
+if [[ "${MODEL}" =~ "CML" ]]; then
+  MODEL_LIST+=( "CML" )
+fi
+
+# Assign KBL when no MODEL is entered
+if [[ ${#MODEL_LIST[@]} -eq 0 ]]; then
+  MODEL="KBL"
+  MODEL_LIST=( "KBL" )
+fi
 
 # Colors
 if [[ -z ${GITHUB_ACTIONS+x} ]]; then
@@ -136,21 +104,19 @@ fi
 
 # WorkSpaceDir
 WSDir="$( cd "$(dirname "$0")" || exit 1; pwd -P )/build"
-OUTDir="XiaoMi_Pro-${VERSION}"
-OUTDir_OC="XiaoMi_Pro-OC-${VERSION}"
+OUTDir_KBL_CLOVER="XiaoMi_Pro-KBL-Clover-${VERSION}"
+OUTDir_KBL_OC="XiaoMi_Pro-KBL-OC-${VERSION}"
+OUTDir_CML_CLOVER="XiaoMi_Pro-CML-Clover-${VERSION}"
+OUTDir_CML_OC="XiaoMi_Pro-CML-OC-${VERSION}"
 
 # Kexts
-rmKexts=(
-  os-x-eapd-codec-commander
-  os-x-null-ethernet
-)
-
 # Require Lilu to be the last for BKext()
 acdtKexts=(
   VirtualSMC
   WhateverGreen
   AppleALC
   HibernationFixup
+  RestrictEvents
   VoodooPS2
   Lilu
 )
@@ -210,13 +176,20 @@ function Init() {
   cd "${WSDir}" || exit 1
 
   local dirs=(
-    "${OUTDir}"
-    "${OUTDir_OC}"
     "Clover"
     "Clover/AppleSupportPkg_209"
     "Clover/AppleSupportPkg_216"
     "OpenCore"
   )
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    dirs+=(
+      "${!OUTDir_MODEL_CLOVER}"
+      "${!OUTDir_MODEL_OC}"
+      "${model}"
+    )
+  done
   for dir in "${dirs[@]}"; do
     mkdir -p "${dir}" || exit 1
   done
@@ -235,6 +208,8 @@ function H_or_G() {
     HGs=( "head -n 1" )
   elif [[ "$1" == "CloverBootloader" ]]; then
     HGs=( "grep -m 1 CloverV2" )
+  elif [[ "$1" == "build-repo" ]]; then
+    HGs=( "grep -A 2 OpenCorePkg | grep -m 1 RELEASE" )
   elif [[ "$1" == "IntelBluetoothFirmware" ]]; then
     HGs=( "grep -m 1 IntelBluetooth" )
   elif [[ "$1" == "itlwm" ]]; then
@@ -266,8 +241,6 @@ function DGR() {
           tag="/tag/2.0.9"
         elif [[ "$2" == "AppleSupportPkg_216" ]]; then
           tag="/tag/2.1.6"
-        elif [[ "$2" == "CloverBootloader" ]]; then
-          tag="/tag/5122"
         fi
       else
         # only release_id is supported
@@ -281,6 +254,9 @@ function DGR() {
   if [[ -n ${GITHUB_ACTIONS+x} || ${GH_API} == False ]]; then
     if [[ "$2" == "AppleSupportPkg_209" || "$2" == "AppleSupportPkg_216" ]]; then
       rawURL="https://github.com/$1/AppleSupportPkg/releases$tag"
+    elif [[ "$2" == "build-repo" ]]; then
+      rawURL="https://github.com/$1/$2/tags"
+      rawURL="https://github.com$(curl -L --silent "${rawURL}" | grep -m 1 'OpenCorePkg' | tr -d '"' | tr -d ' ' | tr -d '>' | sed -e 's/<ahref=//')"
     else
       rawURL="https://github.com/$1/$2/releases$tag"
     fi
@@ -290,11 +266,17 @@ function DGR() {
   else
     if [[ "$2" == "AppleSupportPkg_209" || "$2" == "AppleSupportPkg_216" ]]; then
       rawURL="https://api.github.com/repos/$1/AppleSupportPkg/releases$tag"
+    elif [[ "$2" == "build-repo" ]]; then
+      rawURL="https://api.github.com/repos/$1/$2/releases"
     else
       rawURL="https://api.github.com/repos/$1/$2/releases$tag"
     fi
     for HG in "${HGs[@]}"; do
-      URLs+=( "$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')" )
+      if [[ "$2" == "build-repo" ]]; then
+        URLs+=( "$(curl --silent "${rawURL}" | grep -A 100 'OpenCorePkg' | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')" )
+      else
+        URLs+=( "$(curl --silent "${rawURL}" | grep 'browser_download_url' | eval "${HG}" | tr -d '"' | tr -d ' ' | sed -e 's/browser_download_url://')" )
+      fi
     done
   fi
 
@@ -313,10 +295,10 @@ function DGR() {
 
 # Download GitHub Source Code
 function DGS() {
-  local URL="https://github.com/$1/$2/archive/master.zip"
+  local URL="https://github.com/$1/$2/archive/$3.zip"
   echo "${green}[${reset}${blue}${bold} Downloading $2.zip ${reset}${green}]${reset}"
   echo "${cyan}"
-  cd ./"$3" || exit 1
+  cd ./"$4" || exit 1
   curl -# -L -o "$2.zip" "${URL}"|| networkErr "$2"
   cd - >/dev/null 2>&1 || exit 1
   echo "${reset}"
@@ -334,7 +316,9 @@ function DBR() {
     if [ "${URL:(-4)}" == ".zip" ]; then
       echo "${green}[${reset}${blue}${bold} Downloading ${URL##*\/} ${reset}${green}]${reset}"
       echo "${cyan}"
+      cd ./"$3" || exit 1
       curl -# -L -O "${URL}" || networkErr "$2"
+      cd - >/dev/null 2>&1 || exit 1
       echo "${reset}"
       return
     else
@@ -361,13 +345,19 @@ function DPB() {
 
 # Build Pre-release Kexts
 function BKextHelper() {
-  local liluPlugins="AppleALC HibernationFixup WhateverGreen VirtualSMC"
+  local liluPlugins
   local voodooinputPlugins="VoodooI2C VoodooPS2"
   local PATH_TO_DBG_BIG="Build/Products/Debug/"
   local PATH_TO_REL="build/Release/"
   local PATH_TO_REL_BIG="Build/Products/Release/"
   local PATH_TO_REL_SMA="build/Products/Release/"
   local lineNum
+
+  if [[ ${MODEL} =~ "CML" ]]; then
+    liluPlugins="AppleALC HibernationFixup WhateverGreen RestrictEvents VirtualSMC NoTouchID"
+  elif [[ ${MODEL} =~ "KBL" ]]; then
+    liluPlugins="AppleALC HibernationFixup WhateverGreen RestrictEvents VirtualSMC"
+  fi
 
   echo "${green}[${reset}${blue}${bold} Building $2 ${reset}${green}]${reset}"
   echo
@@ -380,11 +370,37 @@ function BKextHelper() {
       xcodebuild -jobs 1 -target Package -configuration Release >/dev/null 2>&1 || buildErr "$2"
       mkdir ../Kexts
       cp -R ${PATH_TO_REL}*.kext "../Kexts/" || copyErr
+    elif [[ "$2" == "AppleALC" ]]; then
+      mkdir -p "tmp" || exit 1
+      cp -R "Resources/ALC256" "tmp" || copyErr
+      (cd "tmp/ALC256" && find . -maxdepth 1 ! -path "./Info.plist" ! -path "./layout69.xml" ! -path "./Platforms69.xml" -exec rm -rf {} + >/dev/null 2>&1 || exit 1)
+      cp -R "Resources/ALC298" "tmp" || copyErr
+      (cd "tmp/ALC298" && find . -maxdepth 1 ! -path "./Info.plist" ! -path "./layout30.xml" ! -path "./Platforms30.xml" ! -path "./layout99.xml" ! -path "./Platforms99.xml" -exec rm -rf {} + >/dev/null 2>&1 || exit 1)
+      if [[ "${MODEL}" =~ "CML" ]]; then
+        # Delete unrelated layout resources in AppleALC
+        (cd "Resources" && find . -type d -maxdepth 1 ! -path "./PinConfigs.kext" -exec rm -rf {} + >/dev/null 2>&1 || exit 1)
+        cp -R "tmp/ALC256" "Resources" || copyErr
+        xcodebuild clean >/dev/null 2>&1 || buildErr "$2"
+        xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
+        cp -R ${PATH_TO_REL}*.kext "../CML" || copyErr
+      fi
+      if [[ "${MODEL}" =~ "KBL" ]]; then
+        # Delete unrelated layout resources in AppleALC
+        (cd "Resources" && find . -type d -maxdepth 1 ! -path "./PinConfigs.kext" -exec rm -rf {} + >/dev/null 2>&1 || exit 1)
+        cp -R "tmp/ALC298" "Resources" || copyErr
+        xcodebuild clean >/dev/null 2>&1 || buildErr "$2"
+        xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
+        cp -R ${PATH_TO_REL}*.kext "../KBL" || copyErr
+      fi
+    elif [[ "$2" == "NoTouchID" ]]; then
+      xcodebuild -jobs 1 -configuration Release -arch x86_64 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_REL}*.kext "../CML" || copyErr
     else
       xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
       cp -R ${PATH_TO_REL}*.kext "../" || copyErr
     fi
   elif [[ ${voodooinputPlugins} =~ $2 ]]; then
+    cp -R "../MacKernelSDK" "./" || copyErr
     if [[ "$2" == "VoodooI2C" ]]; then
       cp -R "../VoodooInput" "./Dependencies/" || copyErr
       git submodule init >/dev/null 2>&1 && git submodule update >/dev/null 2>&1
@@ -395,10 +411,9 @@ function BKextHelper() {
       lineNum=$(grep -n "Generate Documentation" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj) && lineNum=${lineNum%%:*}
       sed -i '' "${lineNum}d" VoodooI2C/VoodooI2C.xcodeproj/project.pbxproj
 
-      xcodebuild -workspace "VoodooI2C.xcworkspace" -scheme "VoodooI2C" -sdk macosx10.12 -derivedDataPath . -arch x86_64 clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
+      xcodebuild -workspace "VoodooI2C.xcworkspace" -scheme "VoodooI2C" -derivedDataPath . clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO >/dev/null 2>&1 || buildErr "$2"
       cp -R ${PATH_TO_REL_BIG}*.kext "../" || copyErr
     else
-      cp -R "../MacKernelSDK" "./" || copyErr
       cp -R "../VoodooInput" "./" || copyErr
       xcodebuild -jobs 1 -configuration Release >/dev/null 2>&1 || buildErr "$2"
       cp -R ${PATH_TO_REL_SMA}*.kext "../" || copyErr
@@ -410,49 +425,74 @@ function BKextHelper() {
     cp -R ${PATH_TO_REL}*.kext "../" || copyErr
   elif [[ "$2" == "IntelBluetoothFirmware" ]]; then
     cp -R "../MacKernelSDK" "./" || copyErr
+    mkdir -p "tmp" || exit 1
+    cp -R IntelBluetoothFirmware/fw/ibt-12* "tmp" || copyErr
+    cp -R IntelBluetoothFirmware/fw/ibt-19-0* "tmp" || copyErr
 
-    # Delete unrelated firmware and only keep ibt-12*.sfi for Intel Wireless 8265
-    cd "IntelBluetoothFirmware/fw/" && find . -maxdepth 1 -not -name "ibt-12*" -delete && cd "../../" || exit 1
-
-    xcodebuild -alltargets -configuration Release >/dev/null 2>&1 || buildErr "$2"
-    cp -R ${PATH_TO_REL}*.kext "../" || copyErr
+    if [[ "${MODEL}" =~ "CML" ]]; then
+      # Delete unrelated firmware and only keep ibt-19-0*.sfi for Intel Wireless 9560
+      rm -rf "IntelBluetoothFirmware/FwBinary.cpp" || exit 1
+      rm -rf IntelBluetoothFirmware/fw/* >/dev/null 2>&1
+      cp -R tmp/ibt-19-0* "IntelBluetoothFirmware/fw/" || copyErr
+      xcodebuild -alltargets clean >/dev/null 2>&1 || buildErr "$2"
+      xcodebuild -alltargets -configuration Release >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_REL}*.kext "../CML" || copyErr
+    fi
+    if [[ "${MODEL}" =~ "KBL" ]]; then
+      # Delete unrelated firmware and only keep ibt-12*.sfi for Intel Wireless 8265
+      rm -rf "IntelBluetoothFirmware/FwBinary.cpp" || exit 1
+      rm -rf IntelBluetoothFirmware/fw/* >/dev/null 2>&1
+      cp -R tmp/ibt-12* "IntelBluetoothFirmware/fw/" || copyErr
+      xcodebuild -alltargets clean >/dev/null 2>&1 || buildErr "$2"
+      xcodebuild -alltargets -configuration Release >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_REL}*.kext "../KBL" || copyErr
+    fi
   elif [[ "$2" == "itlwm" ]]; then
     cp -R "../MacKernelSDK" "./" || copyErr
-
-    # Delete unrelated firmware and only keep iwm-8265* for Intel Wireless 8265
-    cd "itlwm/firmware/" && find . -maxdepth 1 -not -name "iwm-8265*" -delete && cd "../../" || exit 1
-
     # Pass print syntax to support Python3
     /usr/bin/sed -i "" "s:print compress(\"test\"):pass:g" "scripts/zlib_compress_fw.py"
 
-    xcodebuild -scheme "AirportItlwm (all)" -configuration Debug -derivedDataPath . >/dev/null 2>&1 || buildErr "$2"
-    cp -R ${PATH_TO_DBG_BIG}* "../" || copyErr
+    mkdir -p "tmp" || exit 1
+    cp -R itlwm/firmware/iwlwifi-QuZ* "tmp" || copyErr
+    cp -R itlwm/firmware/iwm-8265* "tmp" || copyErr
+    if [[ "${MODEL}" =~ "CML" ]]; then
+      # Delete unrelated firmware and only keep iwm-9000* for Intel Wireless 9560
+      rm -rf "include/FwBinary.cpp" >/dev/null 2>&1
+      rm -rf itlwm/firmware/* || exit 1
+      cp -R tmp/iwlwifi-QuZ* "itlwm/firmware/" || copyErr
+
+      xcodebuild -scheme "AirportItlwm (all)" clean >/dev/null 2>&1 || buildErr "$2"
+      xcodebuild -scheme "AirportItlwm (all)" -configuration Debug -derivedDataPath . >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_DBG_BIG}* "../CML" || copyErr
+    fi
+    if [[ "${MODEL}" =~ "KBL" ]]; then
+      # Delete unrelated firmware and only keep iwm-8265* for Intel Wireless 8265
+      rm -rf "include/FwBinary.cpp" >/dev/null 2>&1
+      rm -rf itlwm/firmware/* || exit 1
+      cp -R tmp/iwm-8265* "itlwm/firmware/" || copyErr
+
+      xcodebuild -scheme "AirportItlwm (all)" clean >/dev/null 2>&1 || buildErr "$2"
+      xcodebuild -scheme "AirportItlwm (all)" -configuration Debug -derivedDataPath . >/dev/null 2>&1 || buildErr "$2"
+      cp -R ${PATH_TO_DBG_BIG}* "../KBL" || copyErr
+    fi
   fi
   cd ../ || exit 1
 }
 
 function BKext() {
-  local sdkVer=""
+  local GITHUB_REF=""
 
   if [[ ${NO_XCODE} == True ]]; then
     echo "${yellow}[${reset}${red}${bold} ERROR ${reset}${yellow}]${reset}: Missing Xcode tools, won't build kexts!"
     exit 1
   fi
-  if [[ ! -d "${DEVELOPER_DIR}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk" ]]; then
-    echo "${green}[${reset}${blue}${bold} Downloading MacOSX10.12.sdk ${reset}${green}]${reset}"
-    echo "${cyan}"
-    curl -# -L -O https://github.com/alexey-lysiuk/macos-sdk/releases/download/10.12/MacOSX10.12.tar.bz2 || networkErr "MacOSX10.12.sdk" && tar -xjf MacOSX10.12.tar.bz2
-    echo "${reset}"
-    sudo cp -R "MacOSX10.12.sdk" "${DEVELOPER_DIR}/Platforms/MacOSX.platform/Developer/SDKs/" || copyErr
-  fi
-  sdkVer=$(/usr/libexec/PlistBuddy -c 'Print MinimumSDKVersion' "${DEVELOPER_DIR}/Platforms/MacOSX.platform/Info.plist")
-  if [[ ${sdkVer//./} -gt 1012 ]]; then
-    sudo /usr/libexec/PlistBuddy -c "Set :MinimumSDKVersion 10.12" "${DEVELOPER_DIR}/Platforms/MacOSX.platform/Info.plist"
-  fi
 
   git clone https://github.com/acidanthera/MacKernelSDK >/dev/null 2>&1
   src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts/bootstrap.sh) && eval "$src" >/dev/null 2>&1 || exit 1
   src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/VoodooInput/master/VoodooInput/Scripts/bootstrap.sh) && eval "$src" >/dev/null 2>&1 || exit 1
+  if [[ ${MODEL} =~ "CML" ]]; then
+    BKextHelper al3xtjames NoTouchID
+  fi
   for acdtKext in "${acdtKexts[@]}"; do
     BKextHelper ${ACDT} "${acdtKext}"
   done
@@ -471,15 +511,19 @@ function DL() {
 
   # OpenCore
   if [[ ${PRE_RELEASE} =~ "OC" ]]; then
-    DGR williambj1 OpenCore-Factory PreRelease "OpenCore"
+    # williambj1's OpenCore-Factory repository has been archived
+    # DGR williambj1 OpenCore-Factory PreRelease "OpenCore"
+    DGR dortania build-repo NULL "OpenCore"
   else
     DGR ${ACDT} OpenCorePkg NULL "OpenCore"
   fi
 
   # Kexts
-  for rmKext in "${rmKexts[@]}"; do
-    DBR Rehabman "${rmKext}"
-  done
+  DBR Rehabman os-x-null-ethernet
+
+  if [[ ${MODEL} =~ "KBL" ]]; then
+    DBR Rehabman os-x-eapd-codec-commander "KBL"
+  fi
 
   if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
     BKext
@@ -490,10 +534,13 @@ function DL() {
     for oiwKext in "${oiwKexts[@]}"; do
       DGR ${OIW} "${oiwKext}" PreRelease
     done
+    if [[ ${MODEL} =~ "CML" ]]; then
+      DGR al3xtjames NoTouchID NULL "CML"
+    fi
     DGR VoodooI2C VoodooI2C
   fi
 
-  DGS RehabMan hack-tools
+  DGS RehabMan hack-tools master
 
   # UEFI drivers
   # AppleSupportPkg v2.0.9
@@ -506,16 +553,16 @@ function DL() {
   DPB ${ACDT} VirtualSMC EfiDriver/VirtualSmc.efi
 
   # HfsPlus.efi & OC Resources
-  DGS ${ACDT} OcBinaryData
+  DGS ${ACDT} OcBinaryData master
 
   # XiaoMi-Pro ACPI patch
   if [[ ${REMOTE} == True ]]; then
-    DGS daliansky ${REPO_NAME}
+    DGS daliansky ${REPO_NAME} ${REPO_BRANCH}
   fi
 
   # Menchen's ALCPlugFix
   if [[ ${REMOTE} == True ]]; then
-    DGS Menchen ALCPlugFix
+    DGS Menchen ALCPlugFix master
   fi
 }
 
@@ -524,19 +571,27 @@ function Unpack() {
   echo "${green}[${reset}${yellow}${bold} Unpacking ${reset}${green}]${reset}"
   echo
   unzip -qq "*.zip" >/dev/null 2>&1
+  if [[ "${MODEL}" =~ "CML" ]]; then
+    (cd "CML" && unzip -qq ./*.zip >/dev/null 2>&1 || exit 1)
+  fi
+  if [[ "${MODEL}" =~ "KBL" ]]; then
+    (cd "KBL" && unzip -qq ./*.zip >/dev/null 2>&1 || exit 1)
+  fi
 }
 
 # Patch
 function Patch() {
   local unusedItems=(
-    "IntelBluetoothInjector.kext/Contents/_CodeSignature"
-    "IntelBluetoothInjector.kext/Contents/MacOS"
-    "Release/CodecCommander.kext/Contents/Resources"
+    "HibernationFixup.kext/Contents/_CodeSignature"
+    "Kexts/SMCBatteryManager.kext/Contents/Resources"
+    "KBL/Release/CodecCommander.kext/Contents/Resources"
+    "RestrictEvents.kext/Contents/_CodeSignature"
     "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext.dSYM"
     "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext/Contents/_CodeSignature"
     "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext"
     "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext"
     "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext"
+    "WhateverGreen.kext/Contents/_CodeSignature"
   )
   echo "${green}[${reset}${blue}${bold} Patching Resources ${reset}${green}]${reset}"
   echo
@@ -544,272 +599,457 @@ function Patch() {
     rm -rf "${unusedItem}" >/dev/null 2>&1
   done
 
-  # Only keep OCEFIAudio_VoiceOver_Boot.wav in OcBinaryData/Resources/Audio
-  cd "OcBinaryData-master/Resources/Audio/" && find . -maxdepth 1 -not -name "OCEFIAudio_VoiceOver_Boot.wav" -delete && cd "${WSDir}" || exit 1
+  # Only keep OCEFIAudio_VoiceOver_Boot in OcBinaryData/Resources/Audio
+  (cd "OcBinaryData-master/Resources/Audio/" && find . -maxdepth 1 -not -name "OCEFIAudio_VoiceOver_Boot*" -delete || exit 1)
 
   # Rename AirportItlwm.kexts to distinguish different versions
-  mv "Big Sur/AirportItlwm.kext" "Big Sur/AirportItlwm_Big_Sur.kext" || exit 1
-  mv "Catalina/AirportItlwm.kext" "Catalina/AirportItlwm_Catalina.kext" || exit 1
-  mv "High Sierra/AirportItlwm.kext" "High Sierra/AirportItlwm_High_Sierra.kext" || exit 1
-  mv "Mojave/AirportItlwm.kext" "Mojave/AirportItlwm_Mojave.kext" || exit 1
+  if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
+    for model in "${MODEL_LIST[@]}"; do
+      mv "${model}/Big Sur/AirportItlwm.kext" "${model}/Big Sur/AirportItlwm_Big_Sur.kext" || exit 1
+      mv "${model}/Catalina/AirportItlwm.kext" "${model}/Catalina/AirportItlwm_Catalina.kext" || exit 1
+      mv "${model}/High Sierra/AirportItlwm.kext" "${model}/High Sierra/AirportItlwm_High_Sierra.kext" || exit 1
+      mv "${model}/Mojave/AirportItlwm.kext" "${model}/Mojave/AirportItlwm_Mojave.kext" || exit 1
+    done
+  else
+    mv "Big Sur/AirportItlwm.kext" "Big Sur/AirportItlwm_Big_Sur.kext" || exit 1
+    mv "Catalina/AirportItlwm.kext" "Catalina/AirportItlwm_Catalina.kext" || exit 1
+    mv "High Sierra/AirportItlwm.kext" "High Sierra/AirportItlwm_High_Sierra.kext" || exit 1
+    mv "Mojave/AirportItlwm.kext" "Mojave/AirportItlwm_Mojave.kext" || exit 1
+  fi
 }
 
 # Install
 function Install() {
-  local acpiItems
-  local alcfixItems
-  local btItems
-  local gtxItems
-  local kextItems
-  local wikiItems
-
   # Kexts
-  kextItems=(
-    "AppleALC.kext"
+  local sharedKextItems=(
     "HibernationFixup.kext"
-    "IntelBluetoothFirmware.kext"
-    "IntelBluetoothInjector.kext"
     "Lilu.kext"
     "VoodooI2C.kext"
     "VoodooI2CHID.kext"
     "VoodooPS2Controller.kext"
     "WhateverGreen.kext"
-    "hack-tools-master/kexts/EFICheckDisabler.kext"
+    "RestrictEvents.kext"
     "hack-tools-master/kexts/SATA-unsupported.kext"
     "Kexts/SMCBatteryManager.kext"
     "Kexts/SMCLightSensor.kext"
     "Kexts/SMCProcessor.kext"
     "Kexts/VirtualSMC.kext"
-    "Release/CodecCommander.kext"
     "Release/NullEthernet.kext"
   )
-
-  wifiKextItems=(
-    "Big Sur/AirportItlwm_Big_Sur.kext"
-    "Catalina/AirportItlwm_Catalina.kext"
-    "High Sierra/AirportItlwm_High_Sierra.kext"
-    "Mojave/AirportItlwm_Mojave.kext"
-  )
-
-  cloverKextFolders=(
-    "10.13"
-    "10.14"
-    "10.15"
-    "11"
-  )
+  if [[ "${MODEL}" =~ "CML" ]]; then
+    local cmlKextItems=(
+      "AppleALC.kext"
+      "IntelBluetoothFirmware.kext"
+      "IntelBluetoothInjector.kext"
+    )
+    if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
+      cmlKextItems=("${cmlKextItems[@]/#/CML/}")
+    fi
+    cmlKextItems+=(
+      "${sharedKextItems[@]}"
+    )
+    local cmlWifiKextItems=(
+      "Big Sur/AirportItlwm_Big_Sur.kext"
+      "Catalina/AirportItlwm_Catalina.kext"
+    )
+    if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
+      cmlWifiKextItems=("${cmlWifiKextItems[@]/#/CML/}")
+    fi
+    local cmlCloverKextFolders=(
+      "10.15"
+      "11"
+    )
+  fi
+  if [[ "${MODEL}" =~ "KBL" ]]; then
+    local kblKextItems=(
+      "AppleALC.kext"
+      "IntelBluetoothFirmware.kext"
+      "IntelBluetoothInjector.kext"
+    )
+    if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
+      kblKextItems=("${kblKextItems[@]/#/KBL/}")
+    fi
+    kblKextItems+=(
+      "${sharedKextItems[@]}"
+      "KBL/Release/CodecCommander.kext"
+    )
+    local kblWifiKextItems=(
+      "Big Sur/AirportItlwm_Big_Sur.kext"
+      "Catalina/AirportItlwm_Catalina.kext"
+      "High Sierra/AirportItlwm_High_Sierra.kext"
+      "Mojave/AirportItlwm_Mojave.kext"
+    )
+    if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
+      kblWifiKextItems=("${kblWifiKextItems[@]/#/KBL/}")
+    fi
+    local kblCloverKextFolders=(
+      "10.13"
+      "10.14"
+      "10.15"
+      "11"
+    )
+  fi
 
   echo "${green}[${reset}${blue}${bold} Installing Kexts ${reset}${green}]${reset}"
   echo
-  for Kextdir in "${OUTDir}/EFI/CLOVER/kexts/Other/" "${OUTDir_OC}/EFI/OC/Kexts/"; do
-    mkdir -p "${Kextdir}" || exit 1
-    for kextItem in "${kextItems[@]}"; do
-      cp -R "${kextItem}" "${Kextdir}" || copyErr
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    model_Prefix=$(echo "${model}" | tr '[:upper:]' '[:lower:]')
+    MODEL_KextItems="${model_Prefix}KextItems"
+    MODEL_WifiKextItems="${model_Prefix}WifiKextItems"
+    MODEL_CloverKextFolders="${model_Prefix}CloverKextFolders"
+    kextItems="${MODEL_KextItems}[@]"
+    for Kextdir in "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/Other/" "${!OUTDir_MODEL_OC}/EFI/OC/Kexts/"; do
+      mkdir -p "${Kextdir}" || exit 1
+      for kextItem in "${!kextItems}"; do
+        cp -R "${kextItem}" "${Kextdir}" || copyErr
+      done
     done
-  done
 
-  for cloverKextFolder in "${cloverKextFolders[@]}"; do
-    mkdir -p "${OUTDir}/EFI/CLOVER/kexts/${cloverKextFolder}" || exit 1
-  done
+    cloverKextFolder="${MODEL_CloverKextFolders}[@]"
+    for cloverKextFolder in "${!cloverKextFolder}"; do
+      mkdir -p "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/${cloverKextFolder}" || exit 1
+    done
 
-  cp -R "Big Sur/AirportItlwm_Big_Sur.kext" "${OUTDir}/EFI/CLOVER/kexts/11" || copyErr
-  cp -R "Catalina/AirportItlwm_Catalina.kext" "${OUTDir}/EFI/CLOVER/kexts/10.15" || copyErr
-  cp -R "High Sierra/AirportItlwm_High_Sierra.kext" "${OUTDir}/EFI/CLOVER/kexts/10.13" || copyErr
-  cp -R "Mojave/AirportItlwm_Mojave.kext" "${OUTDir}/EFI/CLOVER/kexts/10.14" || copyErr
+    if [[ ${model} == "CML" ]]; then
+      cp -R "CML/NoTouchID.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.15" || copyErr
+    fi
+    if [[ ${PRE_RELEASE} =~ "Kext" ]]; then
+      cp -R "${model}/Big Sur/AirportItlwm_Big_Sur.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/11" || copyErr
+      cp -R "${model}/Catalina/AirportItlwm_Catalina.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.15" || copyErr
+      if [[ ${model} == "KBL" ]]; then
+        cp -R "${model}/High Sierra/AirportItlwm_High_Sierra.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.13" || copyErr
+        cp -R "${model}/Mojave/AirportItlwm_Mojave.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.14" || copyErr
+      fi
+    else
+      cp -R "Big Sur/AirportItlwm_Big_Sur.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/11" || copyErr
+      cp -R "Catalina/AirportItlwm_Catalina.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.15" || copyErr
+      if [[ ${model} == "KBL" ]]; then
+        cp -R "High Sierra/AirportItlwm_High_Sierra.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.13" || copyErr
+        cp -R "Mojave/AirportItlwm_Mojave.kext" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/kexts/10.14" || copyErr
+      fi
+    fi
 
-  for kextItem in "${wifiKextItems[@]}"; do
-    cp -R "${kextItem}" "${OUTDir_OC}/EFI/OC/Kexts/" || copyErr
+    kextItems="${MODEL_WifiKextItems}[@]"
+    for kextItem in "${!kextItems}"; do
+      cp -R "${kextItem}" "${!OUTDir_MODEL_OC}/EFI/OC/Kexts/" || copyErr
+    done
   done
 
   # Drivers
   echo "${green}[${reset}${blue}${bold} Installing Drivers ${reset}${green}]${reset}"
   echo
-  for Driverdir in "${OUTDir}/EFI/CLOVER/drivers/UEFI/" "${OUTDir_OC}/EFI/OC/Drivers/"; do
-    mkdir -p "${Driverdir}" || exit 1
-    cp -R "OcBinaryData-master/Drivers/HfsPlus.efi" "${Driverdir}" || copyErr
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    for Driverdir in "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/drivers/UEFI/" "${!OUTDir_MODEL_OC}/EFI/OC/Drivers/"; do
+      mkdir -p "${Driverdir}" || exit 1
+      cp -R "OcBinaryData-master/Drivers/HfsPlus.efi" "${Driverdir}" || copyErr
+      cp -R "OcBinaryData-master/Drivers/ExFatDxe.efi" "${Driverdir}" || copyErr
+    done
+    cp -R "VirtualSmc.efi" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/drivers/UEFI/" || copyErr
   done
-  cp -R "OcBinaryData-master/Drivers/ExFatDxe.efi" "${OUTDir_OC}/EFI/OC/Drivers/" || copyErr
-  cp -R "VirtualSmc.efi" "${OUTDir}/EFI/CLOVER/drivers/UEFI/" || copyErr
 
   # ACPI
-  acpiItems=(
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-ALS0.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-DDGPU.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-DMAC.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-EC.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-GPRW.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-HPET.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-LGPA.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-MCHC.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-MEM2.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-PMC.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-PNLF.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-PS2K.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-RMNE.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-TPD0.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-XCPM.aml"
+  local sharedAcpiItems=(
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-ALS0.aml"
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-DMAC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-EC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-GPRW.aml"
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-HPET.aml"
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-MCHC.aml"
+    "${REPO_NAME_BRANCH}/ACPI/Shared/SSDT-RMNE.aml"
   )
-  if [[ ${REMOTE} == False ]]; then
-    acpiItems=("${acpiItems[@]/${REPO_NAME_BRANCH}/..}")
+  if [[ "${MODEL}" =~ "KBL" ]]; then
+    local kblAcpiItems=( "${sharedAcpiItems[@]}"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-DDGPU.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-LGPA.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-MEM2.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-PMC.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-PNLF.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-PS2K.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-TPD0.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-USB.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-XCPM.aml"
+    )
+    if [[ ${REMOTE} == False ]]; then
+      kblAcpiItems=("${kblAcpiItems[@]/${REPO_NAME_BRANCH}/..}")
+    fi
+  fi
+  if [[ "${MODEL}" =~ "CML" ]]; then
+    local cmlAcpiItems=( "${sharedAcpiItems[@]}"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-AWAC.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-DDGPU.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-LGPA.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-PMC.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-PNLFCFL.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-PS2K.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-TPD0.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-USB.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-XCPM.aml"
+    )
+    if [[ ${REMOTE} == False ]]; then
+      cmlAcpiItems=("${cmlAcpiItems[@]/${REPO_NAME_BRANCH}/..}")
+    fi
   fi
 
   echo "${green}[${reset}${blue}${bold} Installing ACPIs ${reset}${green}]${reset}"
   echo
-  for ACPIdir in "${OUTDir}/EFI/CLOVER/ACPI/patched/" "${OUTDir_OC}/EFI/OC/ACPI/"; do
-    mkdir -p "${ACPIdir}" || exit 1
-    for acpiItem in "${acpiItems[@]}"; do
-      cp -R "${acpiItem}" "${ACPIdir}" || copyErr
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    model_Prefix=$(echo "${model}" | tr '[:upper:]' '[:lower:]')
+    MODEL_AcpiItems="${model_Prefix}AcpiItems"
+    acpiItems="${MODEL_AcpiItems}[@]"
+    for ACPIdir in "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/ACPI/patched/" "${!OUTDir_MODEL_OC}/EFI/OC/ACPI/"; do
+      mkdir -p "${ACPIdir}" || exit 1
+      for acpiItem in "${!acpiItems}"; do
+        cp -R "${acpiItem}" "${ACPIdir}" || copyErr
+      done
     done
   done
 
   # Theme
   echo "${green}[${reset}${blue}${bold} Installing Themes ${reset}${green}]${reset}"
   echo
-  if [[ ${REMOTE} == True ]]; then
-    cp -R "${REPO_NAME_BRANCH}/CLOVER/themes" "${OUTDir}/EFI/CLOVER/" || copyErr
-  else
-    cp -R "../CLOVER/themes" "${OUTDir}/EFI/CLOVER/" || copyErr
-  fi
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    if [[ ${REMOTE} == True ]]; then
+      cp -R "${REPO_NAME_BRANCH}/CLOVER/themes" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/" || copyErr
+    else
+      cp -R "../CLOVER/themes" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/" || copyErr
+    fi
 
-  cp -R "OcBinaryData-master/Resources" "${OUTDir_OC}/EFI/OC/" || copyErr
+    cp -R "OcBinaryData-master/Resources" "${!OUTDir_MODEL_OC}/EFI/OC/" || copyErr
+  done
 
   # config & README & LICENSE
   echo "${green}[${reset}${blue}${bold} Installing config & README & LICENSE ${reset}${green}]${reset}"
   echo
-  if [[ ${REMOTE} == True ]]; then
-    cp -R "${REPO_NAME_BRANCH}/CLOVER/config.plist" "${OUTDir}/EFI/CLOVER/" || copyErr
-    cp -R "${REPO_NAME_BRANCH}/OC/config.plist" "${OUTDir_OC}/EFI/OC/" || copyErr
-    for READMEdir in "${OUTDir}" "${OUTDir_OC}"; do
-      if [[ ${LANGUAGE} == "EN" ]]; then
-        cp -R "${REPO_NAME_BRANCH}/README.md" "${READMEdir}" || copyErr
-      elif [[ ${LANGUAGE} == "CN" ]]; then
-        cp -R "${REPO_NAME_BRANCH}/README_CN.md" "${READMEdir}" || copyErr
-      fi
-      cp -R "${REPO_NAME_BRANCH}/LICENSE" "${READMEdir}" || copyErr
-    done
-  else
-    cp -R "../CLOVER/config.plist" "${OUTDir}/EFI/CLOVER/" || copyErr
-    cp -R "../OC/config.plist" "${OUTDir_OC}/EFI/OC/" || copyErr
-    for READMEdir in "${OUTDir}" "${OUTDir_OC}"; do
-      if [[ ${LANGUAGE} == "EN" ]]; then
-        cp -R "../README.md" "${READMEdir}" || copyErr
-      elif [[ ${LANGUAGE} == "CN" ]]; then
-        cp -R "../README_CN.md" "${READMEdir}" || copyErr
-      fi
-      cp -R "../LICENSE" "${READMEdir}" || copyErr
-    done
-  fi
-
-  # Bluetooth & GTX & wiki
-  btItems=(
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-ALL.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-FingerBT.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-USBBT.aml"
-    "${REPO_NAME_BRANCH}/ACPI/SSDT-USB-WLAN_LTEBT.aml"
-    "${REPO_NAME_BRANCH}/Docs/Work-Around-with-Bluetooth.pdf"
-  )
-  if [[ ${REMOTE} == False ]]; then
-    btItems=("${btItems[@]/${REPO_NAME_BRANCH}/..}")
-  fi
-
-  echo "${green}[${reset}${blue}${bold} Installing Docs About Bluetooth & GTX & wiki ${reset}${green}]${reset}"
-  echo
-  for BTdir in "${OUTDir}/Bluetooth" "${OUTDir_OC}/Bluetooth"; do
-    mkdir -p "${BTdir}" || exit 1
-    for btItem in "${btItems[@]}"; do
-      cp -R "${btItem}" "${BTdir}" || copyErr
-    done
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    model_Prefix=$(echo "${model}" | tr '[:upper:]' '[:lower:]')
+    MODEL_Config="config_${model_Prefix}.plist"
+    if [[ ${REMOTE} == True ]]; then
+      cp -R "${REPO_NAME_BRANCH}/CLOVER/${MODEL_Config}" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/config.plist" || copyErr
+      cp -R "${REPO_NAME_BRANCH}/OC/${MODEL_Config}" "${!OUTDir_MODEL_OC}/EFI/OC/config.plist" || copyErr
+      for READMEdir in "${!OUTDir_MODEL_CLOVER}" "${!OUTDir_MODEL_OC}"; do
+        if [[ ${LANGUAGE} == "EN" ]]; then
+          cp -R "${REPO_NAME_BRANCH}/README.md" "${READMEdir}" || copyErr
+        elif [[ ${LANGUAGE} == "CN" ]]; then
+          cp -R "${REPO_NAME_BRANCH}/README_CN.md" "${READMEdir}" || copyErr
+        fi
+        cp -R "${REPO_NAME_BRANCH}/LICENSE" "${READMEdir}" || copyErr
+      done
+    else
+      cp -R "../CLOVER/${MODEL_Config}" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/config.plist" || copyErr
+      cp -R "../OC/${MODEL_Config}" "${!OUTDir_MODEL_OC}/EFI/OC/config.plist" || copyErr
+      for READMEdir in "${!OUTDir_MODEL_CLOVER}" "${!OUTDir_MODEL_OC}"; do
+        if [[ ${LANGUAGE} == "EN" ]]; then
+          cp -R "../README.md" "${READMEdir}" || copyErr
+        elif [[ ${LANGUAGE} == "CN" ]]; then
+          cp -R "../README_CN.md" "${READMEdir}" || copyErr
+        fi
+        cp -R "../LICENSE" "${READMEdir}" || copyErr
+      done
+    fi
   done
 
-  gtxItems=( "${REPO_NAME_BRANCH}/ACPI/SSDT-LGPAGTX.aml" )
+  # Bluetooth & GTX/MX350 & wiki
+  local lgpaDir
+
   if [[ ${LANGUAGE} == "EN" ]]; then
-    gtxItems+=( "${REPO_NAME_BRANCH}/Docs/README_GTX.txt" )
+    local sharedBtItems=( "${REPO_NAME_BRANCH}/Docs/Work-Around-with-Bluetooth.pdf" )
   elif [[ ${LANGUAGE} == "CN" ]]; then
-    gtxItems+=( "${REPO_NAME_BRANCH}/Docs/README_CN_GTX.txt" )
+    local sharedBtItems=( "${REPO_NAME_BRANCH}/Docs/蓝牙解决方案.pdf" )
   fi
-  if [[ ${REMOTE} == False ]]; then
-    gtxItems=("${gtxItems[@]/${REPO_NAME_BRANCH}/..}")
+  if [[ "${MODEL}" =~ "CML" ]]; then
+    local cmlBtItems=( "${sharedBtItems[@]}"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-USB-ALL.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-USB-FingerBT.aml"
+      "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-USB-USBBT.aml"
+    )
+    if [[ ${REMOTE} == False ]]; then
+      cmlBtItems=("${cmlBtItems[@]/${REPO_NAME_BRANCH}/..}")
+    fi
+  fi
+  if [[ "${MODEL}" =~ "KBL" ]]; then
+    local kblBtItems=( "${sharedBtItems[@]}"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-USB-ALL.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-USB-FingerBT.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-USB-USBBT.aml"
+      "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-USB-WLAN_LTEBT.aml"
+    )
+    if [[ ${REMOTE} == False ]]; then
+      kblBtItems=("${kblBtItems[@]/${REPO_NAME_BRANCH}/..}")
+    fi
   fi
 
-  for GTXdir in "${OUTDir}/GTX" "${OUTDir_OC}/GTX"; do
-    mkdir -p "${GTXdir}" || exit 1
-    for gtxItem in "${gtxItems[@]}"; do
-      cp -R "${gtxItem}" "${GTXdir}" || copyErr
+  echo "${green}[${reset}${blue}${bold} Installing Docs About Bluetooth & GTX/MX350 & wiki ${reset}${green}]${reset}"
+  echo
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    model_Prefix=$(echo "${model}" | tr '[:upper:]' '[:lower:]')
+    MODEL_BtItems="${model_Prefix}BtItems"
+    btItems="${MODEL_BtItems}[@]"
+    for BTdir in "${!OUTDir_MODEL_CLOVER}/Bluetooth" "${!OUTDir_MODEL_OC}/Bluetooth"; do
+      mkdir -p "${BTdir}" || exit 1
+      for btItem in "${!btItems}"; do
+        cp -R "${btItem}" "${BTdir}" || copyErr
+      done
     done
-  done
 
-  wikiItems=(
-    "${REPO_NAME_BRANCH}/Docs/FAQ.pdf"
-    "${REPO_NAME_BRANCH}/Docs/Drive-Native-Intel-Wireless-Card.pdf"
-    "${REPO_NAME_BRANCH}/Docs/Set-DVMT-to-64mb.pdf"
-    "${REPO_NAME_BRANCH}/Docs/Unlock-0xE2-MSR.pdf"
-  )
-  if [[ ${REMOTE} == False ]]; then
-    wikiItems=("${wikiItems[@]/${REPO_NAME_BRANCH}/..}")
-  fi
+    if [[ "${MODEL}" =~ "KBL" ]]; then
+      local kblLgpaItems=( "${REPO_NAME_BRANCH}/ACPI/KBL/SSDT-LGPAGTX.aml" )
+      if [[ ${LANGUAGE} == "EN" ]]; then
+        if [[ ${REMOTE} == False ]]; then
+          cp -R "../Docs/README_\${MODEL}.txt" "README_GTX.txt"
+          kblLgpaItems=("${kblLgpaItems[@]/${REPO_NAME_BRANCH}/..}")
+        else
+          cp -R "${REPO_NAME_BRANCH}/Docs/README_\${MODEL}.txt" "README_GTX.txt"
+        fi
+        /usr/bin/sed -i "" "s:\${MODEL}:GTX:g" "README_GTX.txt"
+        /usr/bin/sed -i "" "s:\${MODEL_PREFIX}:GTX:g" "README_GTX.txt"
+        kblLgpaItems+=( "README_GTX.txt" )
+      elif [[ ${LANGUAGE} == "CN" ]]; then
+        if [[ ${REMOTE} == False ]]; then
+          cp -R "../Docs/README_CN_\${MODEL}.txt" "README_CN_GTX.txt"
+          kblLgpaItems=("${kblLgpaItems[@]/${REPO_NAME_BRANCH}/..}")
+        else
+          cp -R "${REPO_NAME_BRANCH}/Docs/README_CN_\${MODEL}.txt" "README_CN_GTX.txt"
+        fi
+        /usr/bin/sed -i "" "s:\${MODEL}:GTX:g" "README_CN_GTX.txt"
+        /usr/bin/sed -i "" "s:\${MODEL_PREFIX}:GTX:g" "README_GTX.txt"
+        kblLgpaItems=( "README_CN_GTX.txt" )
+      fi
+    fi
+    if [[ "${MODEL}" =~ "CML" ]]; then
+      local cmlLgpaItems=( "${REPO_NAME_BRANCH}/ACPI/CML/SSDT-LGPA350.aml" )
+      if [[ ${LANGUAGE} == "EN" ]]; then
+        if [[ ${REMOTE} == False ]]; then
+          cp -R "../Docs/README_\${MODEL}.txt" "README_MX350.txt"
+          cmlLgpaItems=("${cmlLgpaItems[@]/${REPO_NAME_BRANCH}/..}")
+        else
+          cp -R "${REPO_NAME_BRANCH}/Docs/README_\${MODEL}.txt" "README_MX350.txt"
+        fi
+        /usr/bin/sed -i "" "s:\${MODEL}:MX350:g" "README_MX350.txt"
+        /usr/bin/sed -i "" "s:\${MODEL_PREFIX}:350:g" "README_MX350.txt"
+        cmlLgpaItems+=( "README_MX350.txt" )
+      elif [[ ${LANGUAGE} == "CN" ]]; then
+        if [[ ${REMOTE} == False ]]; then
+          cp -R "../Docs/README_CN_\${MODEL}.txt" "README_CN_MX350.txt"
+          cmlLgpaItems=("${cmlLgpaItems[@]/${REPO_NAME_BRANCH}/..}")
+        else
+          cp -R "${REPO_NAME_BRANCH}/Docs/README_CN_\${MODEL}.txt" "README_CN_MX350.txt"
+        fi
+        /usr/bin/sed -i "" "s:\${MODEL}:MX350:g" "README_CN_MX350.txt"
+        /usr/bin/sed -i "" "s:\${MODEL_PREFIX}:350:g" "README_CN_MX350.txt"
+        cmlLgpaItems=( "README_CN_MX350.txt" )
+      fi
+    fi
 
-  for WIKIdir in "${OUTDir}/Docs" "${OUTDir_OC}/Docs"; do
-    mkdir -p "${WIKIdir}" || exit 1
-    for wikiItem in "${wikiItems[@]}"; do
-      cp -R "${wikiItem}" "${WIKIdir}" || copyErr
+    MODEL_LgpaItems="${model_Prefix}LgpaItems"
+    lgpaItems="${MODEL_LgpaItems}[@]"
+    if [[ ${model} == "KBL" ]]; then
+      lgpaDir="GTX"
+    elif [[ ${model} == "CML" ]]; then
+      lgpaDir="MX350"
+    fi
+    for LGPAdir in "${!OUTDir_MODEL_CLOVER}/${lgpaDir}" "${!OUTDir_MODEL_OC}/${lgpaDir}"; do
+      mkdir -p "${LGPAdir}" || exit 1
+      for lgpaItem in "${!lgpaItems}"; do
+        cp -R "${lgpaItem}" "${LGPAdir}" || copyErr
+      done
+    done
+
+    if [[ ${LANGUAGE} == "EN" ]]; then
+      local wikiItems=(
+        "${REPO_NAME_BRANCH}/Docs/FAQ.pdf"
+        "${REPO_NAME_BRANCH}/Docs/Set-DVMT-to-64mb.pdf"
+        "${REPO_NAME_BRANCH}/Docs/Unlock-0xE2-MSR.pdf"
+      )
+    elif [[ ${LANGUAGE} == "CN" ]]; then
+      local wikiItems=(
+        "${REPO_NAME_BRANCH}/Docs/常见问题解答.pdf"
+        "${REPO_NAME_BRANCH}/Docs/设置64mb动态显存.pdf"
+        "${REPO_NAME_BRANCH}/Docs/解锁0xE2寄存器.pdf"
+      )
+    fi
+    if [[ ${REMOTE} == False ]]; then
+      wikiItems=("${wikiItems[@]/${REPO_NAME_BRANCH}/..}")
+    fi
+
+    for WIKIdir in "${!OUTDir_MODEL_CLOVER}/Docs" "${!OUTDir_MODEL_OC}/Docs"; do
+      mkdir -p "${WIKIdir}" || exit 1
+      for wikiItem in "${wikiItems[@]}"; do
+        cp -R "${wikiItem}" "${WIKIdir}" || copyErr
+      done
     done
   done
 
   # ALCPlugFix
-  alcfixItems=(
-    "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/alc_fix"
-    "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/build"
-    "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/README.MD"
-  )
-  if [[ ${REMOTE} == True ]]; then
-    cp -R ALCPlugFix-master/* "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix/" || copyErr
-  else
-    alcfixItems=("${alcfixItems[@]/${REPO_NAME_BRANCH}/..}")
-    cd "../" || exit 1
-    git submodule init && git submodule update --remote && cd "${WSDir}" || exit 1
+  if [[ "${MODEL}" =~ "KBL" ]]; then
+    kblAlcfixItems=(
+      "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix_kbl/alc_fix"
+      "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix_kbl/build"
+      "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix_kbl/README.MD"
+    )
   fi
 
-  echo "${green}[${reset}${blue}${bold} Installing ALCPlugFix ${reset}${green}]${reset}"
-  echo
-  for ALCPFdir in "${OUTDir}/ALCPlugFix" "${OUTDir_OC}/ALCPlugFix"; do
-    mkdir -p "${ALCPFdir}" || exit 1
-    for alcfixItem in "${alcfixItems[@]}"; do
-      cp -R "${alcfixItem}" "${ALCPFdir}" || copyErr
+  if [[ ${MODEL} =~ "KBL" ]]; then
+    local OUTDir_MODEL_CLOVER="OUTDir_KBL_CLOVER"
+    local OUTDir_MODEL_OC="OUTDir_KBL_OC"
+    if [[ ${REMOTE} == True ]]; then
+      cp -R ALCPlugFix-master/* "${REPO_NAME_BRANCH}/ALCPlugFix/ALCPlugFix_kbl/" || copyErr
+    else
+      kblAlcfixItems=("${kblAlcfixItems[@]/${REPO_NAME_BRANCH}/..}")
+      cd "../" || exit 1
+      git submodule init >/dev/null 2>&1 && git submodule update --remote >/dev/null 2>&1 && cd "${WSDir}" || exit 1
+    fi
+
+    echo "${green}[${reset}${blue}${bold} Installing ALCPlugFix ${reset}${green}]${reset}"
+    echo
+    for ALCPFdir in "${!OUTDir_MODEL_CLOVER}/ALCPlugFix" "${!OUTDir_MODEL_OC}/ALCPlugFix"; do
+      mkdir -p "${ALCPFdir}" || exit 1
+      for alcfixItem in "${kblAlcfixItems[@]}"; do
+        cp -R "${alcfixItem}" "${ALCPFdir}" || copyErr
+      done
     done
-  done
+  fi
 }
 
 # Extract files for Clover
 function ExtractClover() {
-  echo "${green}[${reset}${blue}${bold} Extracting Clover ${reset}${green}]${reset}"
-  echo
-  # From CloverV2, AppleSupportPkg v2.0.9, and AppleSupportPkg v2.1.6
-  unzip -d "Clover" "Clover/*.zip" >/dev/null 2>&1
-  unzip -d "Clover/AppleSupportPkg_209" "Clover/AppleSupportPkg_209/*.zip" >/dev/null 2>&1
-  unzip -d "Clover/AppleSupportPkg_216" "Clover/AppleSupportPkg_216/*.zip" >/dev/null 2>&1
-  cp -R "Clover/CloverV2/EFI/BOOT" "${OUTDir}/EFI/" || copyErr
-  cp -R "Clover/CloverV2/EFI/CLOVER/CLOVERX64.efi" "${OUTDir}/EFI/CLOVER/" || copyErr
-  cp -R "Clover/CloverV2/EFI/CLOVER/tools" "${OUTDir}/EFI/CLOVER/" || copyErr
   local driverItems=(
     "Clover/CloverV2/EFI/CLOVER/drivers/off/UEFI/MemoryFix/OpenRuntime.efi"
     "Clover/AppleSupportPkg_209/Drivers/AppleGenericInput.efi"
     "Clover/AppleSupportPkg_209/Drivers/AppleUiSupport.efi"
     "Clover/AppleSupportPkg_216/Drivers/ApfsDriverLoader.efi"
   )
-  for driverItem in "${driverItems[@]}"; do
-    cp -R "${driverItem}" "${OUTDir}/EFI/CLOVER/drivers/UEFI/" || copyErr
+
+  echo "${green}[${reset}${blue}${bold} Extracting Clover ${reset}${green}]${reset}"
+  echo
+  # From CloverV2, AppleSupportPkg v2.0.9, and AppleSupportPkg v2.1.6
+  unzip -d "Clover" "Clover/*.zip" >/dev/null 2>&1
+  unzip -d "Clover/AppleSupportPkg_209" "Clover/AppleSupportPkg_209/*.zip" >/dev/null 2>&1
+  unzip -d "Clover/AppleSupportPkg_216" "Clover/AppleSupportPkg_216/*.zip" >/dev/null 2>&1
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    cp -R "Clover/CloverV2/EFI/BOOT" "${!OUTDir_MODEL_CLOVER}/EFI/" || copyErr
+    cp -R "Clover/CloverV2/EFI/CLOVER/CLOVERX64.efi" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/" || copyErr
+    cp -R "Clover/CloverV2/EFI/CLOVER/tools" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/" || copyErr
+    for driverItem in "${driverItems[@]}"; do
+      cp -R "${driverItem}" "${!OUTDir_MODEL_CLOVER}/EFI/CLOVER/drivers/UEFI/" || copyErr
+    done
   done
 }
 
 # Extract files from OpenCore
 function ExtractOC() {
-  echo "${green}[${reset}${blue}${bold} Extracting OpenCore ${reset}${green}]${reset}"
-  echo
-  mkdir -p "${OUTDir_OC}/EFI/OC/Tools" || exit 1
-  unzip -d "OpenCore" "OpenCore/*.zip" >/dev/null 2>&1
-  cp -R "OpenCore/X64/EFI/BOOT" "${OUTDir_OC}/EFI/" || copyErr
-  cp -R "OpenCore/X64/EFI/OC/OpenCore.efi" "${OUTDir_OC}/EFI/OC/" || copyErr
-  cp -R "OpenCore/X64/EFI/OC/Bootstrap" "${OUTDir_OC}/EFI/OC/" || copyErr
   local driverItems=(
     "OpenCore/X64/EFI/OC/Drivers/AudioDxe.efi"
     "OpenCore/X64/EFI/OC/Drivers/OpenCanopy.efi"
@@ -818,11 +1058,21 @@ function ExtractOC() {
   local toolItems=(
     "OpenCore/X64/EFI/OC/Tools/OpenShell.efi"
   )
-  for driverItem in "${driverItems[@]}"; do
-    cp -R "${driverItem}" "${OUTDir_OC}/EFI/OC/Drivers/" || copyErr
-  done
-  for toolItem in "${toolItems[@]}"; do
-    cp -R "${toolItem}" "${OUTDir_OC}/EFI/OC/Tools/" || copyErr
+
+  echo "${green}[${reset}${blue}${bold} Extracting OpenCore ${reset}${green}]${reset}"
+  echo
+  unzip -d "OpenCore" "OpenCore/*.zip" >/dev/null 2>&1
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    mkdir -p "${!OUTDir_MODEL_OC}/EFI/OC/Tools" || exit 1
+    cp -R "OpenCore/X64/EFI/BOOT" "${!OUTDir_MODEL_OC}/EFI/" || copyErr
+    cp -R "OpenCore/X64/EFI/OC/OpenCore.efi" "${!OUTDir_MODEL_OC}/EFI/OC/" || copyErr
+    for driverItem in "${driverItems[@]}"; do
+      cp -R "${driverItem}" "${!OUTDir_MODEL_OC}/EFI/OC/Drivers/" || copyErr
+    done
+    for toolItem in "${toolItems[@]}"; do
+      cp -R "${toolItem}" "${!OUTDir_MODEL_OC}/EFI/OC/Tools/" || copyErr
+    done
   done
 }
 
@@ -842,13 +1092,30 @@ function GenNote() {
   echo
   printVersion=$(echo "${VERSION}" | sed 's/-/\ /g' | sed 's/beta/beta\ /g')
   printf "## XiaoMi NoteBook Pro EFI %s\n" "${printVersion}" >> ReleaseNotes.md
+  # Release warning
+  echo "#### OC Recommendation: A NVRAM reset is highly suggested when upgrading from OpenCore v0.6.3 if \`BootProtect\` was set. Visit [acidanthera/bugtracker#1222 (comment)](https://github.com/acidanthera/bugtracker/issues/1222#issuecomment-739241310) for more information." >> ReleaseNotes.md
 
   lineStart=$(grep -n "XiaoMi NoteBook Pro EFI v" ${changelogPath}) && lineStart=${lineStart%%:*} && lineStart=$((lineStart+1))
   lineEnd=$(grep -n -m2 "XiaoMi NoteBook Pro EFI v" ${changelogPath} | tail -n1)
   lineEnd=${lineEnd%%:*} && lineEnd=$((lineEnd-3))
   sed -n "${lineStart},${lineEnd}p" ${changelogPath} >> ReleaseNotes.md
-  for RNotedir in "${OUTDir}" "${OUTDir_OC}"; do
-    cp -R "ReleaseNotes.md" "${RNotedir}" || copyErr
+
+  # Generate Cloudflare link
+  if [[ ${CUR_TAG} != "" ]]; then
+    echo "-----" >> ReleaseNotes.md
+    printf "国内加速下载链接：\nDownload link for China:" >> ReleaseNotes.md
+    for model in "${MODEL_LIST[@]}"; do
+      echo "- [XiaoMi_Pro-${model}-Clover-${CUR_TAG}.zip](https://hackintosh.stevezheng.workers.dev/https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/download/${CUR_TAG}/XiaoMi_Pro-${model}-Clover-${CUR_TAG}.zip)" >> ReleaseNotes.md
+      echo "- [XiaoMi_Pro-${model}-OC-${CUR_TAG}.zip](https://hackintosh.stevezheng.workers.dev/https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/download/${CUR_TAG}/XiaoMi_Pro-${model}-OC-${CUR_TAG}.zip)" >> ReleaseNotes.md
+    done
+  fi
+
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    for RNotedir in "${!OUTDir_MODEL_CLOVER}" "${!OUTDir_MODEL_OC}"; do
+      cp -R "ReleaseNotes.md" "${RNotedir}" || copyErr
+    done
   done
 }
 
@@ -857,14 +1124,18 @@ function CTrash() {
   echo "${green}[${reset}${blue}${bold} Cleaning Trash Files ${reset}${green}]${reset}"
   echo
   if [[ ${CLEAN_UP} == True ]]; then
-    find . -maxdepth 1 ! -path "./${OUTDir}" ! -path "./${OUTDir_OC}" -exec rm -rf {} + >/dev/null 2>&1
+    find . -maxdepth 1 ! -path "./${OUTDir_KBL_CLOVER}" ! -path "./${OUTDir_KBL_OC}" ! -path "./${OUTDir_CML_CLOVER}" ! -path "./${OUTDir_CML_OC}" -exec rm -rf {} + >/dev/null 2>&1
   fi
 }
 
 # Enjoy
 function Enjoy() {
-  for BUILDdir in "${OUTDir}" "${OUTDir_OC}"; do
-    zip -qr "${BUILDdir}.zip" "${BUILDdir}"
+  for model in "${MODEL_LIST[@]}"; do
+    OUTDir_MODEL_CLOVER="OUTDir_${model}_CLOVER"
+    OUTDir_MODEL_OC="OUTDir_${model}_OC"
+    for BUILDdir in "${!OUTDir_MODEL_CLOVER}" "${!OUTDir_MODEL_OC}"; do
+      zip -qr "${BUILDdir}.zip" "${BUILDdir}"
+    done
   done
   echo "${red}[${reset}${blue}${bold} Done! Enjoy! ${reset}${red}]${reset}"
   echo

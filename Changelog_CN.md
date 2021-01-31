@@ -2,8 +2,65 @@
 
 [English](Changelog.md) | **中文**
 
-## XiaoMi NoteBook Pro EFI v1.4.8
-## 12-X-2020
+## [XiaoMi NoteBook Pro EFI v1.5.2](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.5.2)
+## 2-X-2021
+
+### 更新
+  * 更新 `OpenCore` v0.6.6
+  * 更新 `Clover` r5129
+  * 更新 `Lilu` v1.5.1
+  * 更新 `AppleALC` v1.5.7
+  * 更新 `WhateverGreen` v1.4.7
+  * 更新 `VirtualSMC` v1.2.0
+  * 更新 `VoodooPS2` v2.2.1
+  * 更新 `AirportItlwm` v1.3.0 (up to []())
+
+### 新增
+  - 新增回 `force-online` 属性来修复 Big Sur 的 HDMI
+  - CML: 新增 `AAPL00,override-no-connect` 属性来注入 EDID
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.6
+
+
+## [XiaoMi NoteBook Pro EFI v1.5.1](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.5.1)
+## 1-13-2021
+
+### 移除
+  - 移除 `force-online*` 属性来修复 HDMI
+
+### OC
+  - OC: 禁用 `AudioDxe.efi` 和 `ExFatDxe.efi` 因为它们显著拖慢引导速度
+
+
+## [XiaoMi NoteBook Pro EFI v1.5.0](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.5.0)
+## 1-12-2021
+
+### 更新
+  * 更新 `OpenCore` v0.6.5
+  * 更新 `Clover` r5128
+  * 更新 `WhateverGreen` v1.4.6
+  * 更新 `AppleALC` v1.5.6
+  * 更新 `HibernationFixup` v1.3.9
+  * 更新 `VoodooPS2` v2.2.0
+  * 更新 `VoodooI2C` v2.6.3
+  * 更新 `AirportItlwm` v1.2.0
+
+### 新增
+  * 新增 `RestrictEvents` 来替代 `EFICheckDisabler`
+
+### 移除
+  * 移除 `EFICheckDisabler`
+
+### Clover
+  * Clover: 更新 config 来支持 `Clover` r5128
+
+### OC
+  * OC: 更新 config 来支持 `OpenCore` v0.6.5
+
+
+## [XiaoMi NoteBook Pro EFI v1.4.8](https://github.com/daliansky/XiaoMi-Pro-Hackintosh/releases/tag/v1.4.8)
+## 12-7-2020
 
 ### 更新
   * 更新 `OpenCore` v0.6.4
@@ -11,9 +68,13 @@
   * 更新 `Lilu` v1.5.0
   * 更新 `VirtualSMC` v1.1.9
   * 更新 `AppleALC` v1.5.5
-  * 更新 `VoodooI2C` v2.5.3
-  * 更新 `AirportItlwm` v1.2.0（up to []()）
+  * 更新 `WhateverGreen` v1.4.5
+  * 更新 `HibernationFixup` v1.3.8
+  * 更新 `VoodooPS2` v2.1.9
+  * 更新 `VoodooI2C` v2.5.2（更新至 [VoodooI2C/VoodooI2C@b5a11ce](https://github.com/VoodooI2C/VoodooI2C/commit/b5a11ce59d8b0e7e072c9efdf289d877898cb0c0)）
+  * 更新 `AirportItlwm` v1.2.0（更新至 [OpenIntelWireless/itlwm@c2f2c51](https://github.com/OpenIntelWireless/itlwm/commit/c2f2c51683b39d9327299238b3fa61343ee7177d)）
   * 更新 `SSDT-PNLF`
+  * 更新 `SSDT-PS2K` 因为 `VoodooPS2` v2.1.9 不再默认交换 Command 和 Option
   * 更新 `SSDT-RMNE`
 
 ### 变更
@@ -21,6 +82,7 @@
 
 ### Clover
   * Clover: 更新 config 来支持 `Clover` r5127
+  * Clover: 新增回 Mouse 属性来支持系统选择页中的鼠标使用
 
 ### OC
   * OC: 更新 config 来支持 `OpenCore` v0.6.4
